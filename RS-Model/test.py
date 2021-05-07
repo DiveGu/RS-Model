@@ -1,5 +1,6 @@
 import numpy as np
 import pandas as pd
+from utils.parser import parse_args
 
 #pre='15-filter'
 #print(pre.split('-'))
@@ -23,4 +24,30 @@ import pandas as pd
 #print(list(range(1,1))) # nul
 
 
-print(np.random.choice([1,2,3],0))
+#print(np.random.choice([1,2,3],0))
+
+
+# random从set里随机选
+#import random
+#print(random.sample({1,2,3,4,5,6,7,8,9}, 5))
+
+# 读取保存的txt 中的dict
+#import json
+#f = open('F:/data/experiment_data/lastfm/test_neg.txt','r')
+#a=f.read()
+#mdict=json.loads(a)
+#f.close()
+##print(type(mdict))
+##print(type(mdict['0']))
+#for i in range(100):
+#    print(i,len(mdict[str(i)]))
+##print(mdict['0'])
+
+# 测试load_data
+args=parse_args()
+from utils.load_data import Data
+
+data_path='{}experiment_data/{}/{}_{}/'.format(args.data_path,args.dataset,args.prepro,args.test_method)
+loader=Data(data_path,1024)
+loader.generate_train_cf_batch(0)
+loader.generate_train_cf_batch(1)

@@ -155,7 +155,7 @@ def get_ir(df):
     return ir
 
 # 为test用户构造候选集 用于rank
-def build_candidates_set(test_ur, train_ur, item_pool, candidates_num=1000):
+def build_candidates_set(test_ur, train_ur, item_pool, candidates_num=100):
     """
     - parameters
     test_ur : dict, ground_truth that represents the relationship of user and item in the test set
@@ -172,12 +172,14 @@ def build_candidates_set(test_ur, train_ur, item_pool, candidates_num=1000):
         sub_item_pool = item_pool - v - train_ur[k] # 移去test中groud truth和train中交互的 item
         sample_num = min(len(sub_item_pool), sample_num)
         if sample_num == 0:
-            samples = random.sample(v, candidates_num)
-            test_ucands[k] = list(set(samples))
+            #samples = random.sample(v, candidates_num)
+            #test_ucands[k] = list(set(samples))
+            test_ucands[k]=[] # 空
         else:
             samples = random.sample(sub_item_pool, sample_num) # 从候选item池中采样num个
-            test_ucands[k] = list(v | set(samples)) # 将采样的items和已有的items合并
-    
+            #test_ucands[k] = list(v | set(samples)) # 将采样的items和已有的items合并
+            test_ucands[k]=list(samples)
+
     return test_ucands
 
 

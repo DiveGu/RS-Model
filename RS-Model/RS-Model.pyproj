@@ -4,7 +4,7 @@
     <SchemaVersion>2.0</SchemaVersion>
     <ProjectGuid>71c74822-9166-429a-9f86-1834da16c2a8</ProjectGuid>
     <ProjectHome>.</ProjectHome>
-    <StartupFile>utils\data_preprocess.py</StartupFile>
+    <StartupFile>test.py</StartupFile>
     <SearchPath>
     </SearchPath>
     <WorkingDirectory>.</WorkingDirectory>
@@ -46,9 +46,10 @@
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="utils\helper.py" />
-    <Compile Include="utils\loader.py">
+    <Compile Include="utils\loader_origin.py">
       <SubType>Code</SubType>
     </Compile>
+    <Compile Include="utils\load_data.py" />
     <Compile Include="utils\metrics.py" />
     <Compile Include="utils\parser.py">
       <SubType>Code</SubType>

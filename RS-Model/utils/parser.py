@@ -5,13 +5,14 @@ import argparse
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Run RS-Model.")
+    # 路径参数
     parser.add_argument('--weights_path', nargs='?', default='',
                         help='Store model path.')
     parser.add_argument('--data_path', nargs='?', default='F:/data/',
                         help='Input data path.')
     parser.add_argument('--proj_path', nargs='?', default='',
                         help='Project path.')
-
+    # 数据集 数据处理参数
     parser.add_argument('--dataset', nargs='?', default='lastfm',
                         help='Choose a dataset from {lastfm,gowalla, yelp2018, amazon-book}')
 
