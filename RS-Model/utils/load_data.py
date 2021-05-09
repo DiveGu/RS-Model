@@ -74,7 +74,8 @@ class Data(object):
         for k,v in self.train_user_dict.items():
             # 为每个用户采样len(v) 个负样本
             sample_num=len(v)
-            sub_item_pool=set(range(self.n_items-1))-set(self.train_user_dict[k])-set(self.test_user_dict[k])
+            sub_item_pool=set(range(self.n_items))-set(self.train_user_dict[k])-set(self.test_user_dict[k])
+            #print('用户id{}，交互数量{}，候选池数量{}'.format(k,len(set(self.train_user_dict[k])|set(self.test_user_dict[k])),len(sub_item_pool)))
             sample_num=min(len(v),len(sub_item_pool))
             if(sample_num==len(v)):
                 negs=rd.sample(sub_item_pool, sample_num)
@@ -104,7 +105,5 @@ class Data(object):
         start=idx*self.batch_size
         end=(idx+1)*self.batch_size
         end=end if end<self.n_train else self.n_train
-        print('_____________________________________________')
-        print(self.df_copy[start:end].values)
         return self.df_copy[start:end].values
         

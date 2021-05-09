@@ -44,10 +44,37 @@ from utils.parser import parse_args
 ##print(mdict['0'])
 
 # 测试load_data
-args=parse_args()
-from utils.load_data import Data
+#args=parse_args()
+#from utils.load_data import Data
 
-data_path='{}experiment_data/{}/{}_{}/'.format(args.data_path,args.dataset,args.prepro,args.test_method)
-loader=Data(data_path,1024)
-loader.generate_train_cf_batch(0)
-loader.generate_train_cf_batch(1)
+#data_path='{}experiment_data/{}/{}_{}/'.format(args.data_path,args.dataset,args.prepro,args.test_method)
+#loader=Data(data_path,1024)
+#loader.generate_train_cf_batch(0)
+#loader.generate_train_cf_batch(1)
+
+
+# 测试tf.reduce_mean
+import tensorflow.compat.v1 as tf
+ 
+x = [[1,2,3],
+      [1,2,3]]
+ 
+xx = tf.cast(x,tf.float32)
+ 
+mean_all = tf.reduce_mean(xx, keep_dims=False)
+mean_0 = tf.reduce_mean(xx, axis=0, keep_dims=False)
+mean_1 = tf.reduce_mean(xx, axis=1, keep_dims=False)
+ 
+ 
+with tf.Session() as sess:
+    m_a,m_0,m_1 = sess.run([mean_all, mean_0, mean_1])
+ 
+print (m_a)    # output: 2.0
+print (m_0)    # output: [ 1.  2.  3.]
+print (m_1)    # output:  [ 2.  2.]
+
+
+print (xx.shape)
+print (m_a.shape)
+print (m_0.shape)
+print (m_1.shape)

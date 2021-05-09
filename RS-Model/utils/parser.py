@@ -21,9 +21,28 @@ def parse_args():
 
     parser.add_argument('--test_method',nargs='?',default='ufo',
                         help='Choose a way to get test dataset from {fo, loo, tloo, tfo}')
+    # 模型参数
+    parser.add_argument('--model_type',nargs='?',default='bprmf',
+                        help='Choose a model from {bprmf}.')
+
+    parser.add_argument('--embed_size',type=int,default=64,
+                        help='CF embedding size')
+    parser.add_argument('--regs', nargs='?', default='[1e-5,1e-5,1e-2]',
+                        help='Regularization.')
+    parser.add_argument('--lr', type=float, default=1e-3,
+                        help='Learning rate.')
+    parser.add_argument('--batch_size', type=int, default=512,
+                        help='CF batch size.')
+    parser.add_argument('--epoch', type=int, default=100,
+                        help='Epoch number.')
+
+    parser.add_argument('--verbose', type=int, default=1,
+                        help='Display every verbose epoch.')
 
     parser.add_argument('--pretrain', type=int, default=0,
                         help='0: No pretrain, -1: Pretrain with the learned embeddings, 1:Pretrain with stored models.')
-  
+
+
+
     return parser.parse_args()
 
