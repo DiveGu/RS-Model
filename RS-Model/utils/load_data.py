@@ -2,12 +2,9 @@
 加载处理好的数据
 生成batch样本
 '''
-import numpy as np
 import json
 import pandas as pd
 import random as rd
-import scipy.sparse as sp
-from time import time
 
 class Data(object):
     def __init__(self, path, batch_size):
@@ -105,5 +102,21 @@ class Data(object):
         start=idx*self.batch_size
         end=(idx+1)*self.batch_size
         end=end if end<self.n_train else self.n_train
-        return self.df_copy[start:end].values
+        batch_data={
+            'user':self.df_copy['user'][start:end].values.reshape(-1,1),
+            'pos_item':self.df_copy['item'][start:end].values.reshape(-1,1),
+            'neg_item':self.df_copy['neg_item'][start:end].values.reshape(-1,1),
+        }
+
+        #return self.df_copy[start:end].values
+        return batch_data 
+
+    # 生成batch的feed_dict字典
+    def generate_train_feed_dict(self,model,batch_data):
+        feed_dict={
+            model.users:batch_data['user'],
+            model.pos_items:batch_data['pos_item'],
+            model.neg_items:batch_data['neg_item']
+        }
         
+        return feed_dict

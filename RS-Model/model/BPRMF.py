@@ -17,14 +17,14 @@ class BPRMF():
 
         self.verbose=args.verbose
 
-        self.emb_dim=args.embed_dim
+        self.emb_dim=args.embed_size
         self.lr=args.lr
 
         self.batch_size=args.batch_size
         self.regs=eval(args.regs)
 
         # 定义输入placeholder
-        self.user=tf.placeholder(tf.int32,shape=[None,1],name='users')
+        self.users=tf.placeholder(tf.int32,shape=[None,1],name='users')
         self.pos_items=tf.placeholder(tf.int32,shape=[None,1],name='pos_items')
         self.neg_items=tf.placeholder(tf.int32,shape=[None,1],name='neg_items')
 
@@ -32,9 +32,15 @@ class BPRMF():
         self.weights=self._init_weights()
 
         # 查嵌入表获得表示
-        u_e=tf.nn.embedding_lookup(self.weights['user_embedding'],self.uses) # 
+        #self.weights['user_embedding']=tf.math.l2_normalize(self.weights['user_embedding'], axis=1)
+        #self.weights['item_embedding']=tf.math.l2_normalize(self.weights['item_embedding'], axis=1)
+        u_e=tf.nn.embedding_lookup(self.weights['user_embedding'],self.users) # 
         pos_i_e=tf.nn.embedding_lookup(self.weights['item_embedding'],self.pos_items)
         neg_i_e=tf.nn.embedding_lookup(self.weights['item_embedding'],self.neg_items)
+
+        #u_e=tf.math.l2_normalize(u_e,axis=1)
+        #pos_i_e=tf.math.l2_normalize(pos_i_e,axis=1)
+        #neg_i_e=tf.math.l2_normalize(neg_i_e,axis=1)
 
         # 预测评分
         self.batch_predictions=tf.matmul(u_e,pos_i_e,transpose_a=False,transpose_b=True)
@@ -68,6 +74,7 @@ class BPRMF():
 
     # 构造cf损失函数
     def _creat_cf_loss(self,u_e,pos_i_e,neg_i_e):
+
         pos_scores=tf.reduce_sum(tf.multiply(u_e,pos_i_e),axis=1) # [N,1,K] [N,1,K] -> [N,1,K] -> [N,1]
         neg_scores=tf.reduce_sum(tf.multiply(u_e,neg_i_e),axis=1) # [N,1,K] [N,1,K] -> [N,1,K] -> [N,1]
 

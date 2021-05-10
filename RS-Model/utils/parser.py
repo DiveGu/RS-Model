@@ -16,7 +16,7 @@ def parse_args():
     parser.add_argument('--dataset', nargs='?', default='lastfm',
                         help='Choose a dataset from {lastfm,gowalla, yelp2018, amazon-book}')
 
-    parser.add_argument('--prepro',nargs='?',default='20-core',
+    parser.add_argument('--prepro',nargs='?',default='5-core',
                         help='Choose data preprocess from {orgin,x-filter,x-core}')
 
     parser.add_argument('--test_method',nargs='?',default='ufo',
@@ -25,18 +25,18 @@ def parse_args():
     parser.add_argument('--model_type',nargs='?',default='bprmf',
                         help='Choose a model from {bprmf}.')
 
-    parser.add_argument('--embed_size',type=int,default=64,
+    parser.add_argument('--embed_size',type=int,default=20,
                         help='CF embedding size')
-    parser.add_argument('--regs', nargs='?', default='[1e-5,1e-5,1e-2]',
+    parser.add_argument('--regs', nargs='?', default='[1e-5,1e-3,1e-2]',
                         help='Regularization.')
     parser.add_argument('--lr', type=float, default=1e-3,
                         help='Learning rate.')
-    parser.add_argument('--batch_size', type=int, default=512,
+    parser.add_argument('--batch_size', type=int, default=256,
                         help='CF batch size.')
-    parser.add_argument('--epoch', type=int, default=100,
+    parser.add_argument('--epoch', type=int, default=400,
                         help='Epoch number.')
 
-    parser.add_argument('--verbose', type=int, default=1,
+    parser.add_argument('--verbose', type=int, default=20,
                         help='Display every verbose epoch.')
 
     parser.add_argument('--pretrain', type=int, default=0,
