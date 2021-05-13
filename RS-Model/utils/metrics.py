@@ -1,242 +1,99 @@
+"""
+- 计算评价指标
+- 2021/5/13
+"""
+
 import numpy as np
+from sklearn.metrics import roc_auc_score
+
+# r 是用户u预测结果Top列表 [1,0,0,1,0] 
+# 1 代表这个位置的item在TOP预测中
+# 0 代表这个位置的item不在TOP预测中
 
 
-def precision_at_k(r, k):
-    """
-    Precision calculation method
-    Parameters
-    ----------
-    r : List, list of the rank items
-    k : int, top-K number
-
-    Returns
-    -------
-    pre : float, precision value
-    """
-    assert k >= 1
-    r = np.asarray(r)[:k] != 0
-    if r.size != k:
-        raise ValueError('Relevance score length < k')
-    # return np.mean(r)
-    pre = sum(r) / len(r)
-
-    return pre
+def recall_at_k(r,k,all_pos_num):
+    r=np.array(r)[:k]
+    return float(np.sum(r)/all_pos_num)
 
 
-def recall_at_k(rs, test_ur, k):
-    """
-    Recall calculation method
-    Parameters
-    ----------
-    rs : Dict, {user : rank items} for test set
-    test_ur : Dict, {user : items} for test set ground truth
-    k : int, top-K number
+def precision_at_k(r,k):
+    r=np.array(r)[:k]
+    return float(np.sum(r)/len(r))
 
-    Returns
-    -------
-    rec : float recall value
-    """
-    assert k >= 1
-    res = []
-    for user in test_ur.keys():
-        r = np.asarray(rs[user])[:k] != 0
-        if r.size != k:
-            raise ValueError('Relevance score length < k')
-        if len(test_ur[user]) == 0:
-            raise KeyError(f'Invalid User Index: {user}')
-        res.append(sum(r) / len(test_ur[user]))
-    rec = np.mean(res)
-
-    return rec
-
-
-def mrr_at_k(rs, k):
-    """
-    Mean Reciprocal Rank calculation method
-    Parameters
-    ----------
-    rs : Dict, {user : rank items} for test set
-    k : int, topK number
-
-    Returns
-    -------
-    mrr : float, MRR value
-    """
-    assert k >= 1
-    res = 0
-    for r in rs.values():
-        r = np.asarray(r)[:k] != 0 
-        for index, item in enumerate(r):
-            if item == 1:
-                res += 1 / (index + 1)
-    mrr = res / len(rs)
-
-    return mrr
-
-
-def ap(r):
-    """
-    Average precision calculation method
-    Parameters
-    ----------
-    r : List, Relevance scores (list or numpy) in rank order (first element is the first item)
-
-    Returns
-    -------
-    a_p : float, Average precision value
-    """
-    r = np.asarray(r) != 0
-    out = [precision_at_k(r, k + 1) for k in range(r.size) if r[k]]
-    if not out:
+def hit_at_k(r,k):
+    r=np.array(r)[:k]
+    print(r.size)
+    if(np.sum(r)>=1):
+        return 1.
+    else:
         return 0.
-    a_p = np.sum(out) / len(r)
 
-    return a_p
-
-
-def map_at_k(rs):
-    """
-    Mean Average Precision calculation method
-    Parameters
-    ----------
-    rs : Dict, {user : rank items} for test set
-
-    Returns
-    -------
-    m_a_p : float, MAP value
-    """
-    m_a_p = np.mean([ap(r) for r in rs])
-    return m_a_p
-
-
-def dcg_at_k(r, k):
-    """
-    Discounted Cumulative Gain calculation method
-    Parameters
-    ----------
-    r : List, Relevance scores (list or numpy) in rank order
-                (first element is the first item)
-    k : int, top-K number
-
-    Returns
-    -------
-    dcg : float, DCG value
-    """
-    assert k >= 1
-    r = np.asfarray(r)[:k] != 0
-    if r.size:
-        dcg = np.sum(np.subtract(np.power(2, r), 1) / np.log2(np.arange(2, r.size + 2)))
-        return dcg
+def dcg_at_k(r,k):
+    r=np.array(r)[:k]
+    if(r.size>0):
+        return float(np.sum(r/np.log2(np.arange(2,r.size+2))))
     return 0.
 
-
-def ndcg_at_k(r, k):
-    """
-    Normalized Discounted Cumulative Gain calculation method
-    Parameters
-    ----------
-    r : List, Relevance scores (list or numpy) in rank order
-            (first element is the first item)
-    k : int, top-K number
-
-    Returns
-    -------
-    ndcg : float, NDCG value
-    """
-    assert k >= 1
-    idcg = dcg_at_k(sorted(r, reverse=True), k)
-    if not idcg:
+def ndcg_at_k(r,k):
+    #r=np.array(r)[:k]
+    dcg_max = dcg_at_k(sorted(r, reverse=True),k)
+    if not dcg_max:
         return 0.
-    ndcg = dcg_at_k(r, k) / idcg
-
-    return ndcg
+    return dcg_at_k(r, k) / dcg_max
 
 
-def hr_at_k(rs, test_ur):
+"""
+AP：PR线下面积 具体计算方式可以用
+    -1 PASCAL VOC CHALLENGE，给定cut一组阈值 对于recall>阈值，得到max的precision，对precision取平均
+    -2 所有不同的recall对应的点处的精度值做平均
+https://www.zhihu.com/question/41540197?sort=created
+https://blog.csdn.net/william_hehe/article/details/80006758
+
+mAP：所有类别AP的平均值
+"""
+def average_precision(r,cut):
+    """Score is average precision (area under PR curve)
+    Relevance is binary (nonzero is relevant).
+    Returns:
+        Average precision
     """
-    Hit Ratio calculation method
-    Parameters
-    ----------
-    rs : Dict, {user : rank items} for test set
-    test_ur : (Deprecated) Dict, {user : items} for test set ground truth
+    r = np.asarray(r)
+    # 获得[1,2,...,cut]不同K值下的precision 求平均
+    # 个人理解：每增加一个K值就相当于得到一个Recall ；得到前min(cut,正例num)的所有Recall下的Precision
+    out = [precision_at_k(r, k + 1) for k in range(cut) if r[k]]
+    if not out:
+        return 0.
+    return np.sum(out)/float(min(cut, np.sum(r)))
 
-    Returns
-    -------
-    hr : float, HR value
+
+def mean_average_precision(rs,cut):
+    """Score is mean average precision
+    Relevance is binary (nonzero is relevant).
+    Returns:
+        Mean average precision
     """
-    # another way for calculating hit rate
-    # numer, denom = 0., 0.
-    # for user in test_ur.keys():
-    #     numer += np.sum(rs[user])
-    #     denom += len(test_ur[user])
+    return np.mean([average_precision(r,cut) for r in rs])
 
-    # return numer / denom
-    uhr = 0
-    for r in rs.values():
-        if np.sum(r) != 0:
-            uhr += 1
-    hr = uhr / len(rs)
+def F1(pre, rec):
+    if pre + rec > 0:
+        return (2.0 * pre * rec) / (pre + rec)
+    else:
+        return 0.
 
-    return hr
-
-
-def auc_at_k(rs):
-    """
-    Area Under Curve calculation method
-    Parameters
-    ----------
-    rs : Dict, {user : rank items} for test set
-
-    Returns
-    -------
-    m_auc : float, AUC value
-    """
-    uauc = 0.
-    for user in rs.keys():
-        label_all = rs[user]
-
-        pos_num = len(list(filter(lambda x: x == 1, label_all)))
-        neg_num = len(label_all) - pos_num
-
-        pos_rank_num = 0
-        for j in range(len(pred_all)):
-            if label_all[j] == 1:
-                pos_rank_num += j + 1
-
-        auc = (pos_rank_num - pos_num * (pos_num + 1) / 2) / (pos_num * neg_num)
-
-        uauc += auc
-    m_auc = uauc / len(rs)
-
-    return m_auc
+def auc(ground_truth, prediction):
+    try:
+        res = roc_auc_score(y_true=ground_truth, y_score=prediction)
+    except Exception:
+        res = 0.
+    return res
 
 
-def f1_at_k(rs, test_ur):
-    """
-    F1-score calculation method
-    Parameters
-    ----------
-    rs : Dict, {user : rank items} for test set
-    test_ur : Dict, {user : items} for test set ground truth
+#r=[1,1,0,1,0,0,0,1,0,1]
 
-    Returns
-    -------
-    fs : float, F1-score value
-    """
-    uf1 = 0.
-    for user in rs.keys():
-        r = rs[user]
-        r = np.asarray(r) != 0
-        # start calculate precision
-        prec_k = sum(r) / len(r)
-        # start calculate recall
-        if len(test_ur[user]) == 0:
-            raise KeyError(f'Invalid User Index: {user}')
-        rec_k = sum(r) / len(test_ur[user])
-        # start calculate f1-score
-        f1_k = 2 * prec_k * rec_k / (rec_k + prec_k)
+##result=recall_at_k(r,5,100)
+##result=precision_at_k(r,5)
+##result=hit_at_k(r,5)
+##result=dcg_at_k(r,5)
+#result=ndcg_at_k(r,5)
 
-        uf1 += f1_k
-    fs = uf1 / len(rs)
-
-    return fs
+#print(result)
