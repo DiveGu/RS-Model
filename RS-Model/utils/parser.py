@@ -41,7 +41,9 @@ def parse_args():
 
     parser.add_argument('--pretrain', type=int, default=0,
                         help='0: No pretrain, -1: Pretrain with the learned embeddings, 1:Pretrain with stored models.')
-
+    # 评价指标K
+    parser.add_argument('--Ks', nargs='?', default='[1,5,10,20,50]',
+                        help='top K.')
 
 
     return parser.parse_args()

@@ -103,9 +103,9 @@ class Data(object):
         end=(idx+1)*self.batch_size
         end=end if end<self.n_train else self.n_train
         batch_data={
-            'user':self.df_copy['user'][start:end].values.reshape(-1,1),
-            'pos_item':self.df_copy['item'][start:end].values.reshape(-1,1),
-            'neg_item':self.df_copy['neg_item'][start:end].values.reshape(-1,1),
+            'user':self.df_copy['user'][start:end].values,
+            'pos_item':self.df_copy['item'][start:end].values,
+            'neg_item':self.df_copy['neg_item'][start:end].values,
         }
 
         #return self.df_copy[start:end].values

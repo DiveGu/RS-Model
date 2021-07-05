@@ -8,6 +8,7 @@ from utils.parser import parse_args
 from utils.load_data import *
 import multiprocessing
 import heapq
+import numpy as np
 
 # 导入parser
 # 需要参数 评价指标的K值集合；数据集信息来构造load_data
@@ -16,8 +17,9 @@ cores = multiprocessing.cpu_count() // 2
 
 args = parse_args()
 Ks = eval(args.Ks)
+data_path='{}experiment_data/{}/{}_{}/'.format(args.data_path,args.dataset,args.prepro,args.test_method)
 
-data_generator = Data(path=args.data_path + args.dataset, batch_size=args.batch_size)
+data_generator = Data(data_path,args.batch_size)
 USR_NUM, ITEM_NUM = data_generator.n_users, data_generator.n_items
 N_TRAIN, N_TEST = data_generator.n_train, data_generator.n_test
 BATCH_SIZE = args.batch_size
@@ -91,11 +93,11 @@ def test_one_user(x):
     u = x[1]
     #user u's items in the training set
     try:
-        training_items = data_generator.train_items[u]
+        training_items = data_generator.train_user_dict[u]
     except Exception:
         training_items = []
     #user u's items in the test set
-    user_pos_test = data_generator.test_set[u]
+    user_pos_test = data_generator.test_user_dict[u]
 
     all_items = set(range(ITEM_NUM))
 
@@ -109,10 +111,16 @@ def test_one_user(x):
     return get_performance(user_pos_test, r, auc, Ks)
 
 
-# test
+# 测试模型的表现
 def test(sess, model, users_to_test, drop_flag=False, batch_test_flag=False):
+    """
+    sess:sess
+    model:模型对象
+    users_to_test:要测试的users
+    """
     result = {'precision': np.zeros(len(Ks)), 'recall': np.zeros(len(Ks)), 'ndcg': np.zeros(len(Ks)),
               'hit_ratio': np.zeros(len(Ks)), 'auc': 0.}
+
 
     pool = multiprocessing.Pool(cores)
 
@@ -130,6 +138,7 @@ def test(sess, model, users_to_test, drop_flag=False, batch_test_flag=False):
         end = (u_batch_id + 1) * u_batch_size
 
         user_batch = test_users[start: end]
+        #user_batch=np.reshape(np.array(user_batch),(-1,1)) # [u,1]
 
         if batch_test_flag:
 
@@ -158,10 +167,11 @@ def test(sess, model, users_to_test, drop_flag=False, batch_test_flag=False):
 
         else:
             item_batch = range(ITEM_NUM)
+            #item_batch=np.reshape(np.array(item_batch),(-1,1)) # [i,1]
 
             if drop_flag == False:
-                rate_batch = sess.run(model.batch_ratings, {model.users: user_batch,
-                                                              model.pos_items: item_batch})
+                rate_batch=model.predict(sess,{model.users: user_batch,
+                                    model.pos_items: item_batch})
             else:
                 rate_batch = sess.run(model.batch_ratings, {model.users: user_batch,
                                                               model.pos_items: item_batch,

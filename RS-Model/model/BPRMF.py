@@ -24,9 +24,9 @@ class BPRMF():
         self.regs=eval(args.regs)
 
         # 定义输入placeholder
-        self.users=tf.placeholder(tf.int32,shape=[None,1],name='users')
-        self.pos_items=tf.placeholder(tf.int32,shape=[None,1],name='pos_items')
-        self.neg_items=tf.placeholder(tf.int32,shape=[None,1],name='neg_items')
+        self.users=tf.placeholder(tf.int32,shape=[None,],name='users')
+        self.pos_items=tf.placeholder(tf.int32,shape=[None,],name='pos_items')
+        self.neg_items=tf.placeholder(tf.int32,shape=[None,],name='neg_items')
 
         # 初始化模型参数
         self.weights=self._init_weights()
@@ -43,7 +43,7 @@ class BPRMF():
         #neg_i_e=tf.math.l2_normalize(neg_i_e,axis=1)
 
         # 预测评分
-        self.batch_predictions=tf.matmul(u_e,pos_i_e,transpose_a=False,transpose_b=True)
+        self.batch_predictions=tf.matmul(u_e,pos_i_e,transpose_b=True)
 
         # 构造损失函数 优化
         self.mf_loss,self.reg_loss=self._creat_cf_loss(u_e,pos_i_e,neg_i_e)

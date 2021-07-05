@@ -11,6 +11,7 @@
     <OutputPath>.</OutputPath>
     <Name>RS-Model</Name>
     <RootNamespace>RS-Model</RootNamespace>
+    <SuppressConfigureTestFrameworkPrompt>true</SuppressConfigureTestFrameworkPrompt>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
     <DebugSymbols>true</DebugSymbols>
@@ -42,6 +43,8 @@
     <Compile Include="test.py">
       <SubType>Code</SubType>
     </Compile>
+    <Compile Include="utils\batch_test.py" />
+    <Compile Include="utils\batch_test_old.py" />
     <Compile Include="utils\data_preprocess.py">
       <SubType>Code</SubType>
     </Compile>

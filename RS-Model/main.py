@@ -11,6 +11,7 @@ os.environ['TF_CPP_MIN_LOG_LEVEL']='2'
 from utils.helper import *
 from utils.parser import parse_args
 from time import time
+from utils.batch_test import test
 
 from model.BPRMF import BPRMF
 from utils.load_data import Data
@@ -95,7 +96,7 @@ def main():
             sys.exit()
 
         # 每隔show_step的epoch 进行test计算评价指标
-        show_step=100
+        show_step=20
         if(epoch+1)%show_step!=0:
             # 每隔verbose的epoch 输出当前epoch的loss信息
             if(args.verbose>0 and epoch%args.verbose==0):
@@ -109,7 +110,14 @@ def main():
         **********************************************
         测试 计算评价指标
         """
+        t2=time()
+        users_to_test = list(data_generator.test_user_dict.keys())
+        ret = test(sess, model, users_to_test, drop_flag=False, batch_test_flag=False)
+
+        # 记录固定epoch时的test评价指标
+        print(ret)
         print('TODO:test')
+        print('test eval cost time:[{:.1f}s]').format(time()-t2)
 
 
 if __name__=='__main__':
