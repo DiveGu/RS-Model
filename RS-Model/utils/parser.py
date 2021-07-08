@@ -10,7 +10,7 @@ def parse_args():
                         help='Store model path.')
     parser.add_argument('--data_path', nargs='?', default='F:/data/',
                         help='Input data path.')
-    parser.add_argument('--proj_path', nargs='?', default='',
+    parser.add_argument('--proj_path', nargs='?', default='F:/data/experiment_output/',
                         help='Project path.')
     # 数据集 数据处理参数
     parser.add_argument('--dataset', nargs='?', default='lastfm',
@@ -24,6 +24,8 @@ def parse_args():
     # 模型参数
     parser.add_argument('--model_type',nargs='?',default='bprmf',
                         help='Choose a model from {bprmf}.')
+    parser.add_argument('--model_des',nargs='?',default='no',
+                        help='record something')
 
     parser.add_argument('--embed_size',type=int,default=20,
                         help='CF embedding size')
@@ -33,7 +35,7 @@ def parse_args():
                         help='Learning rate.')
     parser.add_argument('--batch_size', type=int, default=256,
                         help='CF batch size.')
-    parser.add_argument('--epoch', type=int, default=400,
+    parser.add_argument('--epoch', type=int, default=80,
                         help='Epoch number.')
 
     parser.add_argument('--verbose', type=int, default=20,
@@ -44,6 +46,8 @@ def parse_args():
     # 评价指标K
     parser.add_argument('--Ks', nargs='?', default='[1,5,10,20,50]',
                         help='top K.')
+    parser.add_argument('--best_k_idx', type=int, default=3,
+                        help='best recall k idx in Ks')
     parser.add_argument('--test_flag', nargs='?', default='all',
                         help='test rs part or all.')
 

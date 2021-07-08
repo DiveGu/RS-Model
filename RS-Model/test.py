@@ -120,3 +120,47 @@ from utils.parser import parse_args
 #ret=heapq.nlargest(2, mdict.items(), key=lambda x:x[1]) # ok 返回排序的元组
 ##ret=heapq.nlargest(2, mdict) # 返回的结果没看懂 既不是key排序 也不是value排序
 #print(ret)
+
+
+## 测试list转str
+#list1=[1.789,1.566,2.456]
+#ret=" ".join([str(x)[:4] for x in list1])
+#print(ret)
+
+
+# 测试np.array转list
+
+#arr1=np.array([1.56,5,67,7.89])
+
+
+#def convert_list_2_str(lst,num):
+#    return " ".join([str(x)[:num] for x in list(lst)])
+
+#ret=convert_list_2_str(arr1,3)
+#print(ret)
+
+
+# 测试遍历np.array
+#arr1=np.array([1.2,3.4,5,6,7,8.9])
+#for x in arr1:
+#    print(x)
+
+## 测试list 元素是np.array 转str
+#arr1=np.array(range(0,5))
+#arr2=np.array(range(1,6))
+#arr3=np.array(range(2,7))
+#arr4=np.array(range(3,8))
+
+#lst=[arr1,arr2,arr3,arr4]
+
+#lst_str=str([x.tolist() for x in lst])
+#print(lst_str)
+
+
+# 测试获取时间str
+#import time
+from time import strftime,localtime
+cur=strftime("%Y-%m-%d %H:%M:%S", localtime()) 
+print(type(cur))
+print(cur)
+
