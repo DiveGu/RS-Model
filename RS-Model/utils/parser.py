@@ -44,6 +44,8 @@ def parse_args():
     # 评价指标K
     parser.add_argument('--Ks', nargs='?', default='[1,5,10,20,50]',
                         help='top K.')
+    parser.add_argument('--test_flag', nargs='?', default='all',
+                        help='test rs part or all.')
 
 
     return parser.parse_args()

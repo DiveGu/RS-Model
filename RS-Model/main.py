@@ -115,9 +115,9 @@ def main():
         ret = test(sess, model, users_to_test, drop_flag=False, batch_test_flag=False)
 
         # 记录固定epoch时的test评价指标
-        print(ret)
+        #print(ret)
         print('TODO:test')
-        print('test eval cost time:[{:.1f}s]').format(time()-t2)
+        print('test eval cost time:[{:.1f}s]'.format(time()-t2))
 
 
 if __name__=='__main__':

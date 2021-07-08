@@ -81,3 +81,42 @@ from utils.parser import parse_args
 
 
 # 测试array的一些操作 主要是metrics
+
+
+# 测试zip(np.array list)
+#A=np.array(np.arange(0,50).reshape(10,5)) # [10,5]
+#B=list(range(10)) #[10]
+#print(A)
+#print(B)
+#C=zip(A,B)
+#print(type(C))
+#for a in C:
+#    print(type(a))
+
+
+# 测试 np.array(list)的shape
+#a=[1,2,3,4,5]
+#a=np.array(a)
+#print(a)
+#print(a.shape)
+
+
+
+## 测试字典.get是什么类型
+#keys=[1,2,3,4]
+#values=[5,4,3,2]
+#mdict=dict(zip(keys,values))
+
+#print(type(mdict.get))
+#print(mdict.get)
+
+## 测试heapq 对字典排序 key 
+#import heapq
+
+#def sort_key(x):
+#    return x[1],x[0]
+
+##ret=heapq.nlargest(2, mdict, key=mdict.get) # 按照v排序 返回k
+#ret=heapq.nlargest(2, mdict.items(), key=lambda x:x[1]) # ok 返回排序的元组
+##ret=heapq.nlargest(2, mdict) # 返回的结果没看懂 既不是key排序 也不是value排序
+#print(ret)
