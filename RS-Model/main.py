@@ -14,6 +14,7 @@ from time import time,strftime,localtime # 要用time()就不能import time了
 from utils.batch_test import test
 
 from model.BPRMF import BPRMF
+from model.NeuMF import NeuMF
 from utils.load_data import Data
 
 
@@ -48,6 +49,8 @@ def main():
     # 构造模型
     if(args.model_type=='bprmf'):
         model=BPRMF(data_config,pretrain_data,args)
+    elif(args.model_type=='neumf'):
+        model=NeuMF(data_config,pretrain_data,args)
 
     # 加载预训练模型参数（tf保存的整个模型参数）
     if args.pretrain==1:
@@ -173,6 +176,7 @@ def main():
         str_list.append('embed_size:{}'.format(args.embed_size))
         str_list.append('regs:{}'.format(args.regs))
         str_list.append('lr:{}'.format(args.lr))
+        str_list.append('epoch:{}'.format(args.epoch))
         str_list.append('batch_size:{}'.format(args.batch_size))
         str_list.append('pretrain:{}'.format(args.pretrain))
         str_list.append('Ks:{}'.format(args.Ks))
@@ -188,7 +192,7 @@ def main():
     f.write("**********************************************\n")
     f.write(cur_time+"\n")
     f.write("**********************************************\n")
-    f.write(str(params_list)+"\n")
+    f.write(" ".join(params_list)+"\n")
     f.write(final_info+"\n")
     f.close()
 

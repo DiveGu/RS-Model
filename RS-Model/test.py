@@ -159,8 +159,23 @@ from utils.parser import parse_args
 
 # 测试获取时间str
 #import time
-from time import strftime,localtime
-cur=strftime("%Y-%m-%d %H:%M:%S", localtime()) 
-print(type(cur))
-print(cur)
+#from time import strftime,localtime
+#cur=strftime("%Y-%m-%d %H:%M:%S", localtime()) 
+#print(type(cur))
+#print(cur)
 
+
+# 测试 [1,2,3,4]*3
+#lst1=[1,2,3]
+#print(lst1*3)
+
+
+# 测试 zip(数量不一样)
+
+a1=list(range(100))
+a1_new=np.array(a1).reshape(-1,10)
+a2=list(range(10))
+
+for x,y in zip(a1_new,a2):
+    print(x)
+    print(y)

@@ -195,6 +195,7 @@ def test(sess, model, users_to_test, drop_flag=False, batch_test_flag=False):
                 item_batch = range(i_start, i_end)
 
                 if drop_flag == False:
+                    
                     i_rate_batch = sess.run(model.batch_ratings, {model.users: user_batch,
                                                                 model.pos_items: item_batch})
                 else:
@@ -211,10 +212,21 @@ def test(sess, model, users_to_test, drop_flag=False, batch_test_flag=False):
         else:
             item_batch = range(ITEM_NUM)
             #item_batch=np.reshape(np.array(item_batch),(-1,1)) # [i,1]
-
+            user_batch_num=len(user_batch)
+            user_batch_feed=[]
+            for uid in user_batch:
+                user_batch_feed+=[uid]*ITEM_NUM
+            item_batch_feed=list(item_batch)*user_batch_num
             if drop_flag == False:
-                rate_batch=model.predict(sess,{model.users: user_batch,
-                                    model.pos_items: item_batch})
+                """
+                直接的写法 BPRMF：得[u_batch_num,i_num]
+                现在：[u_batch_num*i_num,1]
+                """
+                rate_batch=model.predict(sess,{model.users: user_batch_feed,
+                                    model.pos_items: item_batch_feed})
+                #print(type(rate_batch))
+                #print(rate_batch.shape)
+                rate_batch=np.array(rate_batch).reshape(-1,ITEM_NUM)
             else:
                 rate_batch = sess.run(model.batch_ratings, {model.users: user_batch,
                                                               model.pos_items: item_batch,

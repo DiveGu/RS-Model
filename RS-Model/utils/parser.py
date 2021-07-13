@@ -1,6 +1,6 @@
-'''
+"""
 参数设置
-'''
+"""
 import argparse
 
 def parse_args():
@@ -22,10 +22,16 @@ def parse_args():
     parser.add_argument('--test_method',nargs='?',default='ufo',
                         help='Choose a way to get test dataset from {fo, loo, tloo, tfo}')
     # 模型参数
-    parser.add_argument('--model_type',nargs='?',default='bprmf',
-                        help='Choose a model from {bprmf}.')
-    parser.add_argument('--model_des',nargs='?',default='no',
+    parser.add_argument('--model_type',nargs='?',default='neumf',
+                        help='Choose a model from {bprmf,neumf}.')
+    parser.add_argument('--model_des',nargs='?',default='train_test',
                         help='record something')
+
+
+    # NeuMF 参数
+    parser.add_argument('--layers', nargs='?', default='[40,20,10]',
+                        help='MLP sizes.')
+    # ---------------------------------------------------------
 
     parser.add_argument('--embed_size',type=int,default=20,
                         help='CF embedding size')
@@ -35,10 +41,10 @@ def parse_args():
                         help='Learning rate.')
     parser.add_argument('--batch_size', type=int, default=256,
                         help='CF batch size.')
-    parser.add_argument('--epoch', type=int, default=80,
+    parser.add_argument('--epoch', type=int, default=100,
                         help='Epoch number.')
 
-    parser.add_argument('--verbose', type=int, default=20,
+    parser.add_argument('--verbose', type=int, default=10,
                         help='Display every verbose epoch.')
 
     parser.add_argument('--pretrain', type=int, default=0,
@@ -46,7 +52,7 @@ def parse_args():
     # 评价指标K
     parser.add_argument('--Ks', nargs='?', default='[1,5,10,20,50]',
                         help='top K.')
-    parser.add_argument('--best_k_idx', type=int, default=3,
+    parser.add_argument('--best_k_idx', type=int, default=2,
                         help='best recall k idx in Ks')
     parser.add_argument('--test_flag', nargs='?', default='all',
                         help='test rs part or all.')
