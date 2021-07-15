@@ -43,7 +43,8 @@ class BPRMF():
         #neg_i_e=tf.math.l2_normalize(neg_i_e,axis=1)
 
         # 预测评分
-        self.batch_predictions=tf.matmul(u_e,pos_i_e,transpose_b=True)
+        #self.batch_predictions=tf.matmul(u_e,pos_i_e,transpose_b=True)
+        self.batch_predictions=tf.reduce_sum(tf.multiply(u_e,pos_i_e),axis=1) # [N,1]
 
         # 构造损失函数 优化
         self.mf_loss,self.reg_loss=self._creat_cf_loss(u_e,pos_i_e,neg_i_e)

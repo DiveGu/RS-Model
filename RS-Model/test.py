@@ -172,10 +172,33 @@ from utils.parser import parse_args
 
 # 测试 zip(数量不一样)
 
-a1=list(range(100))
-a1_new=np.array(a1).reshape(-1,10)
-a2=list(range(10))
+#a1=list(range(100))
+#a1_new=np.array(a1).reshape(-1,10)
+#a2=list(range(10))
 
-for x,y in zip(a1_new,a2):
-    print(x)
-    print(y)
+#for x,y in zip(a1_new,a2):
+#    print(x)
+#    print(y)
+
+
+
+
+## 测试tf中+或- [5,1]和[5,5]
+#import tensorflow.compat.v1 as tf
+ 
+## [2,2]
+#x = [[1,2],
+#      [3,4]]
+
+## [2,1]
+#y=[[7],[8]]
+ 
+#x1 = tf.cast(x,tf.float32)
+#x2= tf.cast(y,tf.float32)
+ 
+#result=x1-x2
+
+#with tf.Session() as sess:
+#    ret = sess.run([result])
+ 
+#print (ret)  

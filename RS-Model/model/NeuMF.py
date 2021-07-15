@@ -62,8 +62,8 @@ class NeuMF():
         u_e=tf.nn.embedding_lookup(self.weights['user_embedding'],u) # 
         i_e=tf.nn.embedding_lookup(self.weights['item_embedding'],i)
         
-        mlp_u_e=tf.nn.embedding_lookup(self.weights['user_embedding'],u)
-        mlp_i_e=tf.nn.embedding_lookup(self.weights['item_embedding'],i)
+        mlp_u_e=tf.nn.embedding_lookup(self.weights['user_embedding_mlp'],u)
+        mlp_i_e=tf.nn.embedding_lookup(self.weights['item_embedding_mlp'],i)
         
         # GMF
         gmf=tf.multiply(u_e,i_e)
@@ -74,9 +74,11 @@ class NeuMF():
             mlp_output=tf.layers.dense(mlp_output,layer_size,activation='relu')
         # GMF+MLP
         predict_input=tf.concat([gmf,mlp_output],axis=1)
-        predict_ouput=tf.layers.dense(mlp_output,1) # [N,1]
+        predict_ouput=tf.layers.dense(mlp_output,
+                                      1,
+                                      use_bias=False) # [N,1]
 
-        emb_list=[u_e,i_e,mlp_u_e,mlp_i_e]
+        emb_list=[u_e,mlp_u_e,i_e,mlp_i_e]
 
         return predict_ouput,emb_list
 
@@ -95,16 +97,24 @@ class NeuMF():
             all_weights['item_embedding']=tf.Variable(initial_value=self.pretrain_data['item_embed'],trainable=True,
                                                       name='item_embedding',dtype=tf.float32)
             print('using pretrained user/item embeddings')
+
+        all_weights['user_embedding_mlp']=tf.Variable(initializer([self.n_users,self.emb_dim]),name='user_embedding_mlp')
+        all_weights['item_embedding_mlp']=tf.Variable(initializer([self.n_items,self.emb_dim]),name='item_embedding_mlp')
         return all_weights
 
     # 构造cf损失函数
     def _creat_cf_loss(self,pos_predict,neg_predict,pos_emb_list,neg_emb_list):
-        for emb in pos_emb_list+neg_emb_list:
+        for emb in pos_emb_list+neg_emb_list[2:]:
             regular=tf.nn.l2_loss(emb)# 1
 
         diff=tf.log(tf.nn.sigmoid(pos_predict-neg_predict)) # [N,1]
 
         mf_loss=-(tf.reduce_mean(diff)) # [N,1] -> 1
+
+        # point-wise logloss
+        #logloss=tf.concat([tf.log(pos_predict),tf.log(1-neg_predict)],axis=1) # [N,2]
+        #mf_loss=-(tf.reduce_mean(logloss))
+
         reg_loss=self.regs[0]*regular
 
         return mf_loss,reg_loss

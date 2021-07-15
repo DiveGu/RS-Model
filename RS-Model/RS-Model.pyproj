@@ -28,6 +28,9 @@
     <Compile Include="model\BPRMF.py">
       <SubType>Code</SubType>
     </Compile>
+    <Compile Include="model\DisenMF.py">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Include="model\CDAERecommender.py" />
     <Compile Include="model\Item2VecRecommender.py" />
     <Compile Include="model\KNNCFRecommender.py" />

@@ -22,20 +22,27 @@ def parse_args():
     parser.add_argument('--test_method',nargs='?',default='ufo',
                         help='Choose a way to get test dataset from {fo, loo, tloo, tfo}')
     # 模型参数
-    parser.add_argument('--model_type',nargs='?',default='neumf',
-                        help='Choose a model from {bprmf,neumf}.')
+    parser.add_argument('--model_type',nargs='?',default='DisenMF',
+                        help='Choose a model from {bprmf,neumf,DisenMF}.')
     parser.add_argument('--model_des',nargs='?',default='train_test',
                         help='record something')
 
 
     # NeuMF 参数
-    parser.add_argument('--layers', nargs='?', default='[40,20,10]',
+    parser.add_argument('--layers', nargs='?', default='[40,20]',
                         help='MLP sizes.')
+    # ---------------------------------------------------------
+
+    # DisenMF 参数
+    parser.add_argument('--factor_num', type=int,default=10,
+                        help='factor num.')
+    parser.add_argument('--factor_dim', type=int,default=2,
+                        help='factor num.')
     # ---------------------------------------------------------
 
     parser.add_argument('--embed_size',type=int,default=20,
                         help='CF embedding size')
-    parser.add_argument('--regs', nargs='?', default='[1e-5,1e-3,1e-2]',
+    parser.add_argument('--regs', nargs='?', default='[1e-5,1e-5,1e-9]',
                         help='Regularization.')
     parser.add_argument('--lr', type=float, default=1e-3,
                         help='Learning rate.')

@@ -15,6 +15,7 @@ from utils.batch_test import test
 
 from model.BPRMF import BPRMF
 from model.NeuMF import NeuMF
+from model.DisenMF import DisenMF
 from utils.load_data import Data
 
 
@@ -51,6 +52,8 @@ def main():
         model=BPRMF(data_config,pretrain_data,args)
     elif(args.model_type=='neumf'):
         model=NeuMF(data_config,pretrain_data,args)
+    elif(args.model_type=='DisenMF'):
+        model=DisenMF(data_config,pretrain_data,args)
 
     # 加载预训练模型参数（tf保存的整个模型参数）
     if args.pretrain==1:
@@ -95,12 +98,14 @@ def main():
         loss/=n_batch
         mf_loss/=n_batch
         reg_loss/=n_batch
+        #print(mf_loss)
+        #print(reg_loss)
 
         #loss_log.append(loss)
 
         if(np.isnan(loss)):
             print('ERROR:loss is nan')
-            sys.exit()
+            #sys.exit()
 
         # 每隔show_step的epoch 进行test计算评价指标
         show_step=20
