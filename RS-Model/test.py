@@ -181,8 +181,6 @@ from utils.parser import parse_args
 #    print(y)
 
 
-
-
 ## 测试tf中+或- [5,1]和[5,5]
 #import tensorflow.compat.v1 as tf
  
@@ -202,3 +200,27 @@ from utils.parser import parse_args
 #    ret = sess.run([result])
  
 #print (ret)  
+
+
+# 测试测试tf.nn.softmax_cross_entropy_with_logits(labels=label, logits=X_logit)
+import tensorflow.compat.v1 as tf
+label=[[0,0,1],
+       [1,0,0],
+       [0,1,0]
+    ]
+
+X_logit=[[0,0,10],
+       [10,8,1],
+       [5,8,2]
+    ]
+
+label=tf.cast(label,tf.float32)
+X_logit=tf.cast(X_logit,tf.float32)
+
+result=tf.nn.softmax_cross_entropy_with_logits(labels=label, logits=X_logit)
+
+
+with tf.Session() as sess:
+    ret = sess.run([result])
+ 
+print (ret)  

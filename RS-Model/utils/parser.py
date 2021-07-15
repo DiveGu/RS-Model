@@ -34,15 +34,15 @@ def parse_args():
     # ---------------------------------------------------------
 
     # DisenMF 参数
-    parser.add_argument('--factor_num', type=int,default=10,
+    parser.add_argument('--factor_num', type=int,default=4,
                         help='factor num.')
-    parser.add_argument('--factor_dim', type=int,default=2,
+    parser.add_argument('--factor_dim', type=int,default=5,
                         help='factor num.')
     # ---------------------------------------------------------
 
     parser.add_argument('--embed_size',type=int,default=20,
                         help='CF embedding size')
-    parser.add_argument('--regs', nargs='?', default='[1e-5,1e-5,1e-9]',
+    parser.add_argument('--regs', nargs='?', default='[1e-5,1e-1,1e-8]',
                         help='Regularization.')
     parser.add_argument('--lr', type=float, default=1e-3,
                         help='Learning rate.')

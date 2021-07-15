@@ -17,6 +17,10 @@ class DisenMF():
 
         self.verbose=args.verbose
 
+        # 各个factor上的嵌入是随机生成 OR 投影矩阵计算
+        self.random_factor_emb=True
+        self.factot_loss_type='class'
+
         self.emb_dim=args.embed_size
         self.factor_num=args.factor_num
         self.factor_dim=args.factor_dim
@@ -44,8 +48,12 @@ class DisenMF():
     # 构造模型
     def _forward(self):
         # 1 把user item嵌入分别投影到factor的空间中
-        user_factor_emb_list=self._get_disen_embedding(self.weights['user_embedding'])
-        item_factor_emb_list=self._get_disen_embedding(self.weights['item_embedding'])
+        if(self.random_factor_emb):
+            user_factor_emb_list=self._get_disen_embedding_random('user')
+            item_factor_emb_list=self._get_disen_embedding_random('item')
+        else:
+            user_factor_emb_list=self._get_disen_embedding(self.weights['user_embedding'])
+            item_factor_emb_list=self._get_disen_embedding(self.weights['item_embedding'])
 
         # 2 获取计算score前的输入
         user_emb_final,item_emb_final=self._get_score_input(user_factor_emb_list,item_factor_emb_list)
@@ -60,9 +68,20 @@ class DisenMF():
 
         # 4 构造损失函数 优化
         self.mf_loss,self.reg_loss=self._creat_cf_loss(u_e,pos_i_e,neg_i_e)
-        self.factor_loss=self._creat_factor_loss(user_factor_emb_list,self.users)+\
-                            self._creat_factor_loss(item_factor_emb_list,self.pos_items)+\
-                            self._creat_factor_loss(item_factor_emb_list,self.neg_items)
+
+        # 独立性损失
+        if(self.factot_loss_type=='car'):
+            self.factor_loss=self._creat_factor_loss_car(user_factor_emb_list,self.users)+\
+                                self._creat_factor_loss_car(item_factor_emb_list,self.pos_items)+\
+                                self._creat_factor_loss_car(item_factor_emb_list,self.neg_items)
+        elif(self.factot_loss_type=='cos'):
+            self.factor_loss=self._creat_factor_loss_cos(user_factor_emb_list,self.users)+\
+                                self._creat_factor_loss_cos(item_factor_emb_list,self.pos_items)+\
+                                self._creat_factor_loss_cos(item_factor_emb_list,self.neg_items)
+        elif(self.factot_loss_type=='class'):
+            self.factor_loss=self._creat_factor_loss_class(user_factor_emb_list,self.users)+\
+            self._creat_factor_loss_class(item_factor_emb_list,self.pos_items)+\
+            self._creat_factor_loss_class(item_factor_emb_list,self.neg_items)
 
         self.reg_loss+=self.factor_loss
         self.loss=self.mf_loss+self.reg_loss
@@ -70,19 +89,28 @@ class DisenMF():
         self.opt=tf.train.AdamOptimizer(learning_rate=self.lr).minimize(self.loss)
         return 
 
-    # 获取每个factor空间上的嵌入表
+    # 获取每个factor空间上的嵌入表[随机初始化得到]
+    def _get_disen_embedding_random(self,name):
+        factor_emb_list=[]
+        for i in range(self.factor_num):
+            factor_emb=self.weights['{}_embedding_{}'.format(name,i)]
+            factor_emb_list.append(factor_emb)
+
+        return factor_emb_list
+
+    # 获取每个factor空间上的嵌入表[投影得到]
     def _get_disen_embedding(self,emb_origin):
         factor_emb_list=[]
         for i in range(self.factor_num):
             factor_emb=tf.layers.dense(emb_origin,
-                                       self.factor_dim,
-                                       use_bias=True,
-                                       kernel_regularizer=tf.keras.regularizers.l2(self.regs[2]),
-                                       bias_regularizer=tf.keras.regularizers.l2(self.regs[2]),
-                                       activation=self.factor_activation[i%(len(self.factor_activation))],
-                                       name="factor{}_layer".format(i),
-                                       reuse=tf.AUTO_REUSE,
-                                       ) # [N,factor_dim]
+                                        self.factor_dim,
+                                        use_bias=True,
+                                        kernel_regularizer=tf.keras.regularizers.l2(self.regs[2]),
+                                        bias_regularizer=tf.keras.regularizers.l2(self.regs[2]),
+                                        activation=self.factor_activation[i%(len(self.factor_activation))],
+                                        name="factor{}_layer".format(i),
+                                        reuse=tf.AUTO_REUSE,
+                                        ) # [N,factor_dim]
             factor_emb_list.append(factor_emb)
 
         return factor_emb_list
@@ -114,6 +142,12 @@ class DisenMF():
             all_weights['item_embedding']=tf.Variable(initial_value=self.pretrain_data['item_embed'],trainable=True,
                                                       name='item_embedding',dtype=tf.float32)
             print('using pretrained user/item embeddings')
+
+        if(self.random_factor_emb):
+            for i in range(self.factor_num):
+                all_weights['user_embedding_{}'.format(i)]=tf.Variable(initializer([self.n_users,self.factor_dim]),name='user_embedding_{}'.format(i))
+                all_weights['item_embedding_{}'.format(i)]=tf.Variable(initializer([self.n_items,self.factor_dim]),name='item_embedding_{}'.format(i))
+
         return all_weights
 
     # 构造cf损失函数
@@ -131,8 +165,8 @@ class DisenMF():
        
         return mf_loss,reg_loss
 
-    # 构造独立性损失函数
-    def _creat_factor_loss(self,factor_emb_list,ids):
+    # 构造独立性损失函数[协方差距离]
+    def _creat_factor_loss_car(self,factor_emb_list,ids):
         emb_list=[]
         for emb in factor_emb_list:
             emb_list.append(tf.nn.embedding_lookup(emb,ids))
@@ -174,6 +208,51 @@ class DisenMF():
                 factor_loss+=dcar_AB
                 
         factor_loss/=(self.factor_num*(self.factor_num-1)/2)
+        factor_loss=self.regs[1]*factor_loss
+
+        return factor_loss
+
+    # 构造独立性损失函数[cos距离]
+    def _creat_factor_loss_cos(self,factor_emb_list,ids):
+        emb_list=[]
+        for emb in factor_emb_list:
+            emb_list.append(tf.nn.embedding_lookup(emb,ids))
+       
+        def get_cos(X_list):
+            sum_square=tf.square(tf.add_n(X_list)) # [N,k]
+            square_sum=[]
+            for X in X_list:
+                square_sum.append(tf.square(X)) # [N,k]
+            square_sum=tf.square(tf.add_n(square_sum))
+
+            return 0.5*tf.sqrt(tf.reduce_sum(tf.square(sum_square-square_sum)))
+
+        # 计算cos距离
+        factor_loss=get_cos(emb_list)
+        factor_loss=self.regs[1]*factor_loss
+
+        return factor_loss
+
+    
+    # 构造独立性损失函数[class分类器]
+    def _creat_factor_loss_class(self,factor_emb_list,ids):
+        emb_list=[]
+        for emb in factor_emb_list:
+            emb_list.append(tf.nn.embedding_lookup(emb,ids))
+            
+        X=tf.concat(emb_list,axis=0) # [factor_num*N,k]
+        X_logit=tf.layers.dense(X,
+                                self.factor_num,
+                                use_bias=True,
+                                activation=None,
+                                name="factor_class",
+                                reuse=tf.AUTO_REUSE,
+                                )
+        n_size=tf.dtypes.cast(tf.shape(emb_list[0])[0], tf.float32)
+        label = tf.tile(tf.eye(self.factor_num), [n_size, 1])
+
+        # 计算softmax 交叉熵
+        factor_loss=tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(labels=label, logits=X_logit))
         factor_loss=self.regs[1]*factor_loss
 
         return factor_loss

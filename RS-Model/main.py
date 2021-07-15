@@ -108,7 +108,7 @@ def main():
             #sys.exit()
 
         # 每隔show_step的epoch 进行test计算评价指标
-        show_step=20
+        show_step=50
         if(epoch+1)%show_step!=0:
             # 每隔verbose的epoch 输出当前epoch的loss信息
             if(args.verbose>0 and epoch%args.verbose==0):
