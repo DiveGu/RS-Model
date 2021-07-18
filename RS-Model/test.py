@@ -203,24 +203,39 @@ from utils.parser import parse_args
 
 
 # 测试测试tf.nn.softmax_cross_entropy_with_logits(labels=label, logits=X_logit)
+#import tensorflow.compat.v1 as tf
+#label=[[0,0,1],
+#       [1,0,0],
+#       [0,1,0]
+#    ]
+
+#X_logit=[[0,0,10],
+#       [10,8,1],
+#       [5,8,2]
+#    ]
+
+#label=tf.cast(label,tf.float32)
+#X_logit=tf.cast(X_logit,tf.float32)
+
+#result=tf.nn.softmax_cross_entropy_with_logits(labels=label, logits=X_logit)
+
+
+#with tf.Session() as sess:
+#    ret = sess.run([result])
+ 
+#print (ret)  
+
+# 测试tf.tile
+# label = tf.tile(tf.eye(self.factor_num), [n_size, 1])
+
 import tensorflow.compat.v1 as tf
-label=[[0,0,1],
-       [1,0,0],
-       [0,1,0]
-    ]
 
-X_logit=[[0,0,10],
-       [10,8,1],
-       [5,8,2]
-    ]
 
-label=tf.cast(label,tf.float32)
-X_logit=tf.cast(X_logit,tf.float32)
-
-result=tf.nn.softmax_cross_entropy_with_logits(labels=label, logits=X_logit)
+label=tf.tile(tf.eye(5), [3, 3])
 
 
 with tf.Session() as sess:
-    ret = sess.run([result])
+    ret = sess.run([label])
  
 print (ret)  
+

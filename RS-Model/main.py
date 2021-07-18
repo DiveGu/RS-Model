@@ -16,8 +16,12 @@ from utils.batch_test import test
 from model.BPRMF import BPRMF
 from model.NeuMF import NeuMF
 from model.DisenMF import DisenMF
+from model.LightGCN import LightGCN
 from utils.load_data import Data
+from utils.load_data_graph import Data_Graph
 
+SEED=2021
+tf.set_random_seed(SEED)
 
 # 加载预训练的user/item 嵌入
 def load_pretrain_data(args):
@@ -36,10 +40,19 @@ def main():
     args = parse_args()
     data_path='{}experiment_data/{}/{}_{}/'.format(args.data_path,args.dataset,args.prepro,args.test_method)
     # 加载数据类 生成batch_data
-    data_generator=Data(data_path,args.batch_size)
-    data_config=dict()
-    data_config['n_users']=data_generator.n_users
-    data_config['n_items']=data_generator.n_items
+    if(args.model_type in ['bprmf','neumf','DisenMF']):
+        data_generator=Data(data_path,args.batch_size)
+        data_config=dict()
+        data_config['n_users']=data_generator.n_users
+        data_config['n_items']=data_generator.n_items
+    elif(args.model_type in ['bprmf','neumf','LightGCN']):
+        data_generator=Data_Graph(data_path,args.batch_size)
+        data_config=dict()
+        data_config['n_users']=data_generator.n_users
+        data_config['n_items']=data_generator.n_items
+        adj_matrix, norm_adj_matrix, mean_adj_matrix=data_generator.get_adj_matrix()
+        data_generator._just_test()
+        data_config['norm_adj']=norm_adj_matrix
 
     # 构造pretrain_data
     if args.pretrain in [-1]:
@@ -54,6 +67,8 @@ def main():
         model=NeuMF(data_config,pretrain_data,args)
     elif(args.model_type=='DisenMF'):
         model=DisenMF(data_config,pretrain_data,args)
+    elif(args.model_type=='LightGCN'):
+        model=LightGCN(data_config,pretrain_data,args)
 
     # 加载预训练模型参数（tf保存的整个模型参数）
     if args.pretrain==1:
@@ -108,7 +123,7 @@ def main():
             #sys.exit()
 
         # 每隔show_step的epoch 进行test计算评价指标
-        show_step=50
+        show_step=20
         if(epoch+1)%show_step!=0:
             # 每隔verbose的epoch 输出当前epoch的loss信息
             if(args.verbose>0 and epoch%args.verbose==0):

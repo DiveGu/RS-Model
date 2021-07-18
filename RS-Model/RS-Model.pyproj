@@ -25,6 +25,7 @@
     <Compile Include="main.py">
       <SubType>Code</SubType>
     </Compile>
+    <Compile Include="model\LightGCN.py" />
     <Compile Include="model\BPRMF.py">
       <SubType>Code</SubType>
     </Compile>
@@ -59,6 +60,9 @@
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="utils\load_data.py" />
+    <Compile Include="utils\load_data_graph.py">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Include="utils\metrics.py" />
     <Compile Include="utils\parser.py">
       <SubType>Code</SubType>
