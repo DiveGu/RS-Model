@@ -35,6 +35,9 @@
     <Compile Include="model\CDAERecommender.py" />
     <Compile Include="model\Item2VecRecommender.py" />
     <Compile Include="model\KNNCFRecommender.py" />
+    <Compile Include="model\NAIS.py">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Include="model\NeuMF.py">
       <SubType>Code</SubType>
     </Compile>
@@ -60,6 +63,7 @@
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="utils\load_data.py" />
+    <Compile Include="utils\load_data_history.py" />
     <Compile Include="utils\load_data_graph.py">
       <SubType>Code</SubType>
     </Compile>

@@ -228,14 +228,40 @@ from utils.parser import parse_args
 # 测试tf.tile
 # label = tf.tile(tf.eye(self.factor_num), [n_size, 1])
 
+#import tensorflow.compat.v1 as tf
+
+
+#label=tf.tile(tf.eye(5), [3, 3])
+
+
+#with tf.Session() as sess:
+#    ret = sess.run([label])
+ 
+#print (ret)  
+
+
+# 测试 tf.sequence_mask()
+
 import tensorflow.compat.v1 as tf
 
-
-label=tf.tile(tf.eye(5), [3, 3])
-
+x=tf.sequence_mask([[1, 3, 2],
+                    [0, 2, 3]],3,dtype = tf.float32) # [N,k] 变成 [N,k,max_len]
+"""
+最里面增加1维，维度是max_len
+取值2 表示 位置 1、2为True 位置3为Fasle
+"""
 
 with tf.Session() as sess:
-    ret = sess.run([label])
+    ret = sess.run([x])
+
+#[array([[[ True, False, False],
+#        [ True,  True,  True],
+#        [ True,  True, False]],
+
+#       [[False, False, False],
+#        [ True,  True, False],
+#        [ True,  True,  True]]])]
  
 print (ret)  
+
 

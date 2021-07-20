@@ -22,8 +22,8 @@ def parse_args():
     parser.add_argument('--test_method',nargs='?',default='ufo',
                         help='Choose a way to get test dataset from {fo, loo, tloo, tfo}')
     # 模型参数
-    parser.add_argument('--model_type',nargs='?',default='LightGCN',
-                        help='Choose a model from {bprmf,neumf,DisenMF,LightGCN}.')
+    parser.add_argument('--model_type',nargs='?',default='NAIS',
+                        help='Choose a model from {bprmf,neumf,DisenMF,LightGCN,NAIS}.')
     parser.add_argument('--model_des',nargs='?',default='train_test',
                         help='record something')
 

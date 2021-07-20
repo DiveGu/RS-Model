@@ -17,7 +17,9 @@ from model.BPRMF import BPRMF
 from model.NeuMF import NeuMF
 from model.DisenMF import DisenMF
 from model.LightGCN import LightGCN
+from model.NAIS import NAIS
 from utils.load_data import Data
+from utils.load_data_history import Data_History
 from utils.load_data_graph import Data_Graph
 
 SEED=2021
@@ -45,7 +47,7 @@ def main():
         data_config=dict()
         data_config['n_users']=data_generator.n_users
         data_config['n_items']=data_generator.n_items
-    elif(args.model_type in ['bprmf','neumf','LightGCN']):
+    elif(args.model_type in ['LightGCN']):
         data_generator=Data_Graph(data_path,args.batch_size)
         data_config=dict()
         data_config['n_users']=data_generator.n_users
@@ -53,6 +55,11 @@ def main():
         adj_matrix, norm_adj_matrix, mean_adj_matrix=data_generator.get_adj_matrix()
         data_generator._just_test()
         data_config['norm_adj']=norm_adj_matrix
+    elif(args.model_type in ['NAIS']):
+        data_generator=Data_History(data_path,args.batch_size)
+        data_config=dict()
+        data_config['n_users']=data_generator.n_users
+        data_config['n_items']=data_generator.n_items
 
     # 构造pretrain_data
     if args.pretrain in [-1]:
@@ -69,6 +76,8 @@ def main():
         model=DisenMF(data_config,pretrain_data,args)
     elif(args.model_type=='LightGCN'):
         model=LightGCN(data_config,pretrain_data,args)
+    elif(args.model_type=='NAIS'):
+        model=NAIS(data_config,pretrain_data,args)
 
     # 加载预训练模型参数（tf保存的整个模型参数）
     if args.pretrain==1:

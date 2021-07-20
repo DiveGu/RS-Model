@@ -26,7 +26,7 @@ class Data_Graph(Data):
             adj_matrix = sp.load_npz(self.path + '/s_adj_matrix.npz')
             norm_adj_matrix = sp.load_npz(self.path + '/s_norm_adj_matrix.npz')
             mean_adj_matrix = sp.load_npz(self.path + '/s_mean_adj_matrix.npz')
-            print('already load adj matrix {} {:.1s}'.format(adj_matrix.shape, time() - t0))
+            print('already load adj matrix {} {:.1}s'.format(adj_matrix.shape, time() - t0))
 
         except Exception:
             adj_matrix, norm_adj_matrix, mean_adj_matrix = self.creat_adj_matrix()
@@ -70,14 +70,11 @@ class Data_Graph(Data):
         print("normalized adjacency matrix cost time:{:.1}s".format(time()-t1))
         return adj_matrix.tocsr(),norm_adj_matrix.tocsr(),mean_adj_matrix.tocsr()
 
-    def _just_test(self):
-        print('nothing to do...')
 
 
-
-#from utils.parser import parse_args
-#args = parse_args()
-#data_path='{}experiment_data/{}/{}_{}/'.format(args.data_path,args.dataset,args.prepro,args.test_method)
-## 加载数据类 生成batch_data
-#data_generator=Data_Graph(data_path,args.batch_size)
-#data_generator.get_adj_matrix()
+from utils.parser import parse_args
+args = parse_args()
+data_path='{}experiment_data/{}/{}_{}/'.format(args.data_path,args.dataset,args.prepro,args.test_method)
+# 加载数据类 生成batch_data
+data_generator=Data_Graph(data_path,args.batch_size)
+data_generator.get_adj_matrix()
