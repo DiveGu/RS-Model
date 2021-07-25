@@ -242,26 +242,31 @@ from utils.parser import parse_args
 
 # 测试 tf.sequence_mask()
 
-import tensorflow.compat.v1 as tf
+#import tensorflow.compat.v1 as tf
 
-x=tf.sequence_mask([[1, 3, 2],
-                    [0, 2, 3]],3,dtype = tf.float32) # [N,k] 变成 [N,k,max_len]
-"""
-最里面增加1维，维度是max_len
-取值2 表示 位置 1、2为True 位置3为Fasle
-"""
+#x=tf.sequence_mask([[1, 3, 2],
+#                    [0, 2, 3]],3,dtype = tf.float32) # [N,k] 变成 [N,k,max_len]
+#"""
+#最里面增加1维，维度是max_len
+#取值2 表示 位置 1、2为True 位置3为Fasle
+#"""
 
-with tf.Session() as sess:
-    ret = sess.run([x])
+#with tf.Session() as sess:
+#    ret = sess.run([x])
 
-#[array([[[ True, False, False],
-#        [ True,  True,  True],
-#        [ True,  True, False]],
+##[array([[[ True, False, False],
+##        [ True,  True,  True],
+##        [ True,  True, False]],
 
-#       [[False, False, False],
-#        [ True,  True, False],
-#        [ True,  True,  True]]])]
+##       [[False, False, False],
+##        [ True,  True, False],
+##        [ True,  True,  True]]])]
  
-print (ret)  
+#print (ret)  
+
+
+# 测试list转set 的元素顺序
+ret=[2,2,3,3,5,5,1,1,4,4,4,]
+print(set(ret))
 
 

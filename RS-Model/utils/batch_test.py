@@ -143,10 +143,11 @@ def test_one_user(x):
 
 
 # 测试模型的表现
-def test(sess, model, users_to_test, drop_flag=False, batch_test_flag=False):
+def test(sess, model, data_loader,users_to_test, drop_flag=False, batch_test_flag=False):
     """
     sess:sess
     model:模型对象
+    data_loader:load_data对象，需要使用其生成predict的batch_data
     users_to_test:要测试的users
     drop_flag:True-不需要考虑dropout
               False-需要考虑dropout 即feed_dict需要传入
@@ -222,8 +223,13 @@ def test(sess, model, users_to_test, drop_flag=False, batch_test_flag=False):
                 直接的写法 BPRMF：得[u_batch_num,i_num]
                 现在：[u_batch_num*i_num,1]
                 """
-                rate_batch=model.predict(sess,{model.users: user_batch_feed,
-                                    model.pos_items: item_batch_feed})
+                predict_batch_data=data_loader.generate_predict_cf_batch(user_batch_feed,item_batch_feed)
+                predict_batch_feed_dict=data_loader.generate_predict_feed_dict(model,predict_batch_data)
+
+                rate_batch=model.predict(sess,predict_batch_feed_dict)
+
+                #rate_batch=model.predict(sess,{model.users: user_batch_feed,
+                #                    model.pos_items: item_batch_feed})
                 #print(type(rate_batch))
                 #print(rate_batch.shape)
                 rate_batch=np.array(rate_batch).reshape(-1,ITEM_NUM)

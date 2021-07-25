@@ -84,6 +84,7 @@ class NAIS():
             #all_weights['user_embedding']=tf.Variable(initializer([self.n_users,self.emb_dim]),name='user_embedding')
             all_weights['item_embedding_history']=tf.Variable(initializer([self.n_items+1,self.emb_dim]),name='item_embedding_history')
             all_weights['item_embedding_target']=tf.Variable(initializer([self.n_items+1,self.emb_dim]),name='item_embedding_target')
+            #all_weights['item_embedding_target']=all_weights['item_embedding_history']
             print('using xavier initialization')        
         else:
             all_weights['item_embedding']=tf.Variable(initial_value=self.pretrain_data['item_embed'],trainable=True,

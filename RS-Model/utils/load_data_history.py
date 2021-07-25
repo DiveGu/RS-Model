@@ -39,6 +39,24 @@ class Data_History(Data):
 
     # 获取一个batch里的用户的行为序列+pad表示
     def _get_batch_user_history(self,uid_list):
+        # 为了predict获取recall时出现 [uid1,iid1] [uid1,iid2]... [uid1,iidN] [uid2,iid1]这种情况能更快 加一步判断
+        if(len(set(uid_list))*self.n_items==len(uid_list)):
+            # 循环获取每个uid
+            batch_u_num=len(uid_list)//self.n_items
+            uid_set=[uid_list[self.n_items*idx] for idx in range(batch_u_num)] # 不直接使用set是因为set会默认排序
+            max_len=0
+            user_his_single=[]
+            for uid in uid_set:
+                user_his_single.append(self.train_user_dict[uid])
+                max_len=max(max_len,len(user_his_single[-1]))
+
+            user_his=[]
+            for his in user_his_single:
+                user_his+=self._add_mask(self.n_items,[his],max_len)*self.n_items
+
+            return np.array(user_his)
+
+        # --------------------
         user_his=[]
         cur_batch_his_len=[]
         for uid in uid_list:
@@ -74,6 +92,25 @@ class Data_History(Data):
         }
         
         return feed_dict    
+
+    # 根据uid_list和iid_list生成batch_data [进行预测score_ui时用；还有获取评价指标时使用]
+    def generate_predict_cf_batch(self,uid_list,iid_list):
+        # 1 父类batch_data:[user,pos_item]
+        batch_data=super(Data_History,self).generate_predict_cf_batch(uid_list,iid_list)
+        # 2 新增user_his_item
+        batch_data['user_his_item']=self._get_batch_user_history(batch_data['user'])
+        return batch_data
+
+    # 生成预测batch的feed_dict字典
+    def generate_predict_feed_dict(self,model,batch_data):
+        feed_dict={
+            model.users:batch_data['user'],
+            model.pos_items:batch_data['pos_item'],
+            model.user_his_item:batch_data['user_his_item'],
+        }
+        
+        return feed_dict
+
 
 
 

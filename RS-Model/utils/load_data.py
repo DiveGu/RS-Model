@@ -25,10 +25,10 @@ class Data(object):
         self.exist_users = self.train_user_dict.keys()
 
         # 加载测试集的负采样
-        f = open(path+'test_neg.txt','r')
-        test_neg_dict=json.loads(f.read())
+        #f = open(path+'test_neg.txt','r')
+        #test_neg_dict=json.loads(f.read())
 
-        self._statistic_ratings()
+        #self._statistic_ratings()
 
     # 加载训练集
     def _load_ratings_train(self,train_file):
@@ -117,6 +117,23 @@ class Data(object):
             model.users:batch_data['user'],
             model.pos_items:batch_data['pos_item'],
             model.neg_items:batch_data['neg_item']
+        }
+        
+        return feed_dict
+
+    # 根据uid_list和iid_list生成batch_data [进行预测score_ui时用；还有获取评价指标时使用]
+    def generate_predict_cf_batch(self,uid_list,iid_list):
+        batch_data={
+            'user':uid_list,
+            'pos_item':iid_list,
+        }
+        return batch_data
+
+    # 生成预测batch的feed_dict字典
+    def generate_predict_feed_dict(self,model,batch_data):
+        feed_dict={
+            model.users:batch_data['user'],
+            model.pos_items:batch_data['pos_item'],
         }
         
         return feed_dict

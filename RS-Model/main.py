@@ -148,7 +148,7 @@ def main():
         """
         t2=time()
         users_to_test = list(data_generator.test_user_dict.keys())
-        ret = test(sess, model, users_to_test, drop_flag=False, batch_test_flag=False)
+        ret = test(sess, model,data_generator, users_to_test, drop_flag=False, batch_test_flag=False)
 
         # 记录固定epoch时的test评价指标
         print('TODO:test')
