@@ -25,6 +25,9 @@
     <Compile Include="main.py">
       <SubType>Code</SubType>
     </Compile>
+    <Compile Include="model\DGCF.py">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Include="model\LightGCN.py" />
     <Compile Include="model\BPRMF.py">
       <SubType>Code</SubType>

@@ -265,8 +265,8 @@ from utils.parser import parse_args
 #print (ret)  
 
 
-# 测试list转set 的元素顺序
-ret=[2,2,3,3,5,5,1,1,4,4,4,]
-print(set(ret))
+## 测试list转set 的元素顺序
+#ret=[2,2,3,3,5,5,1,1,4,4,4,]
+#print(set(ret))
 
 
