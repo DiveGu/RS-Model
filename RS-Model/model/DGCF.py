@@ -15,9 +15,15 @@ class DGCF():
 
         self.n_users=data_config['n_users']
         self.n_items=data_config['n_items']
-        # 通过data_config传进来归一化邻接矩阵
-        self.norm_adj = data_config['norm_adj']
+        # 通过data_config传进来邻接矩阵
+        # 需要提取将邻接矩阵A转化成coo [row,col,data] h即为row t即为col
+        self.norm_adj = data_config['norm_adj'] # 邻接矩阵
+        self.all_h_list = data_config['all_h_list'] # 所有Edge的头节点 list
+        self.all_t_list = data_config['all_t_list'] # 所有Edge的尾节点 list
+        self.A_in_shape = self.norm_adj.tocoo().shape # 邻接矩阵的形状
+
         self.n_fold=100
+        self.n_iteration=args.n_iteration
 
         self.layer_num=args.layer_num
 
@@ -29,7 +35,7 @@ class DGCF():
         # factor数量
         self.factor_num=args.factor_num
         self.factor_dim=self.emb_dim//self.factor_num
-        self.factor_dim=self.factor_num*self.factor_dim # 保证emb_dim/factor_num==factor_dim
+        self.emb_dim=self.factor_num*self.factor_dim # 保证emb_dim/factor_num==factor_dim
 
         self.batch_size=args.batch_size
         self.regs=eval(args.regs)
@@ -96,140 +102,82 @@ class DGCF():
         ego_embeddings = tf.concat([self.weights['user_embedding'], self.weights['item_embedding']], axis=0) # [U+I,k]
         all_embeddings = [ego_embeddings]
 
+        # 每层卷积时的factor_num 路由机制的迭代次数
+        factor_num_layer_list=[self.factor_num,self.factor_num,self.factor_num,self.factor_num]
+        iter_num_layer_list=[self.n_iteration,self.n_iteration,self.n_iteration,self.n_iteration] 
+
+        # 初始在各个factor上的分布 [4,Edge]
+        A_values = tf.ones(shape=[self.n_factors, len(self.all_h_list)])
+
         # 做L层卷积
         for i in range(self.layer_num):
-            # 把整个嵌入划分成factor_num个子嵌入表
-            ego_factor_emb_list=tf.split(all_embeddings[-1])
-
-            break
-
+            factor_num_cur=factor_num_layer_list[i]
+            iter_num_cur=iter_num_layer_list[i]
+            # 把整个嵌入划分成factor_num个子嵌入表 每个factor上的维度是factor_dim
+            ego_factor_emb_list=tf.split(all_embeddings[-1],factor_num_cur,axis=1)
+            # 不同factor上的A值进行归一化
+            A_values_t=tf.nn.softmax(A_values,axis=0)
+            # 动态路由 迭代iter_num次
+            for t in range(iter_num_cur):
+                A_values_t=A_values_t
 
         return
 
+    # 传入所有factor的A_values 计算每个factor下的A_score以及A_score的拉普拉斯矩阵
+    def _convert_A_values_to_A_factors_tensor(self, f_num, A_factor_values, pick=True):
+        """
+        f_num:factor数量
+        A_factor_values:A值 [f_num,Edge]
+        pick:True,缩小最弱的factor score；False,不对A_value进行修改
+        --------------
+        return:
+        A_factors: factor的softmax之后的A_values(sp tensor) list
+        D_col_factors:factor的softmax之后的对每一行求和的sum 拉普拉斯算子(sp tensor) list
+        D_row_factors:factor的softmax之后的对每一列求和的sum 拉普拉斯算子(sp tensor) list
+        """
+        A_factors = []
+        D_col_factors = []
+        D_row_factors = []
+        # 邻接矩阵（所有Edge）的头尾节点
+        A_indices = np.mat([self.all_h_list, self.all_t_list]).transpose() # [2,Edge] -> [Edge,2]
+        D_indices = np.mat([list(range(self.n_users+self.n_items)), list(range(self.n_users+self.n_items))]).transpose() # [2,U+I] -> [U+I,2]
 
+        # 【step 1】：对于A按照factor维度进行softmax
+        if pick:
+            A_factor_scores = tf.nn.softmax(A_factor_values, 0)
+            min_A = tf.reduce_min(A_factor_scores, 0) # 对于每个边 找到所有factor中最小的score [f_num,Edge]
+            index = A_factor_scores > (min_A + 0.0000001)
+            index = tf.cast(index, tf.float32)*(self.pick_level-1.0) + 1.0  # adjust the weight of the minimum factor to 1/self.pick_level
 
-    def _create_star_routing_embed_with_P(self, pick_ = False):
-        '''
-        pick_ : True, the model would narrow the weight of the least important factor down to 1/args.pick_scale.
-        pick_ : False, do nothing.
-        '''
-        p_test = False
-        p_train = False
-
-        A_values = tf.ones(shape=[self.n_factors, len(self.all_h_list)])
-        # get a (n_factors)-length list of [n_users+n_items, n_users+n_items]
-
-        # load the initial all-one adjacency values
-        # .... A_values is a all-ones dense tensor with the size of [n_factors, all_h_list].
+            A_factor_scores = A_factor_scores * index
+            A_factor_scores = A_factor_scores / tf.reduce_sum(A_factor_scores, 0)
+        else:
+            A_factor_scores = tf.nn.softmax(A_factor_values, 0)
         
+        # 【step 2】：对于每个factor将list的score转化为tf.sparse形式
+        for i in range(0, f_num):
+            # 【2-1】:提取factor i 对应的score行 并转化为稀疏tensor
+            A_i_scores = A_factor_scores[i] # 1维 [Edge]
+            # [Edge,2] [Edge] () -> tensor [U+I,U+I]
+            A_i_tensor = tf.SparseTensor(A_indices, A_i_scores, self.A_in_shape)
 
-        # get the ID embeddings of users and items
-        # .... ego_embeddings is a dense tensor with the size of [n_users+n_items, embed_size];
-        # .... all_embeddings stores a (n_layers)-len list of outputs derived from different layers.
-        ego_embeddings = tf.concat([self.weights['user_embedding'], self.weights['item_embedding']], axis=0)
-        all_embeddings = [ego_embeddings]
-        all_embeddings_t = [ego_embeddings]
-
-        output_factors_distribution = []
-        
-        factor_num = [self.n_factors, self.n_factors, self.n_factors]
-        iter_num = [self.n_iterations, self.n_iterations, self.n_iterations]
-        for k in range(0, self.n_layers):
-            # prepare the output embedding list
-            # .... layer_embeddings stores a (n_factors)-len list of outputs derived from the last routing iterations.
-            n_factors_l = factor_num[k]
-            n_iterations_l = iter_num[k]
-            layer_embeddings = []
-            layer_embeddings_t = []
+            # 【2-2】:计算每个factor下的拉普拉斯矩阵
+            # 计算当前factor i的score的度（准确的说，是sum A value）
+            # 分别是：求每一行的和 求每一列的和
+            D_i_col_scores = 1/tf.math.sqrt(tf.sparse_reduce_sum(A_i_tensor, axis=1,keepdims=False)) # [U+I,]
+            D_i_row_scores = 1/tf.math.sqrt(tf.sparse_reduce_sum(A_i_tensor, axis=0,keepdims=False)) # [,U+I]
             
-            # split the input embedding table
-            # .... ego_layer_embeddings is a (n_factors)-leng list of embeddings [n_users+n_items, embed_size/n_factors]
-            ego_layer_embeddings = tf.split(ego_embeddings, n_factors_l, 1)
-            ego_layer_embeddings_t = tf.split(ego_embeddings, n_factors_l, 1) 
+            # 【2-3】:重新修正两个Laplace 稀疏tensor 的形状
+            D_i_col_tensor = tf.SparseTensor(D_indices, D_i_col_scores, self.A_in_shape)
+            D_i_row_tensor = tf.SparseTensor(D_indices, D_i_row_scores, self.A_in_shape)
 
-            # perform routing mechanism
-            for t in range(0, n_iterations_l):
-                iter_embeddings = []
-                iter_embeddings_t = []
-                A_iter_values = []
+            A_factors.append(A_i_tensor)
+            D_col_factors.append(D_i_col_tensor)
+            D_row_factors.append(D_i_row_tensor)
 
-                # split the adjacency values & get three lists of [n_users+n_items, n_users+n_items] sparse tensors
-                # .... A_factors is a (n_factors)-len list, each of which is an adjacency matrix
-                # .... D_col_factors is a (n_factors)-len list, each of which is a degree matrix w.r.t. columns
-                # .... D_row_factors is a (n_factors)-len list, each of which is a degree matrix w.r.t. rows
-                if t == n_iterations_l - 1:
-                    p_test = pick_
-                    p_train = False
+        # return a (n_factors)-length list of laplacian matrix
+        return A_factors, D_col_factors, D_row_factors
 
-                A_factors, D_col_factors, D_row_factors = self._convert_A_values_to_A_factors_with_P(n_factors_l, A_values, pick= p_train)
-                A_factors_t, D_col_factors_t, D_row_factors_t = self._convert_A_values_to_A_factors_with_P(n_factors_l, A_values, pick= p_test)
-                for i in range(0, n_factors_l):
-                    # update the embeddings via simplified graph convolution layer
-                    # .... D_col_factors[i] * A_factors[i] * D_col_factors[i] is Laplacian matrix w.r.t. the i-th factor
-                    # .... factor_embeddings is a dense tensor with the size of [n_users+n_items, embed_size/n_factors]
-                    factor_embeddings = tf.sparse.sparse_dense_matmul(D_col_factors[i], ego_layer_embeddings[i])
-                    factor_embeddings_t = tf.sparse.sparse_dense_matmul(D_col_factors_t[i], ego_layer_embeddings_t[i])
-
-                    factor_embeddings_t = tf.sparse.sparse_dense_matmul(A_factors_t[i], factor_embeddings_t)
-                    factor_embeddings = tf.sparse.sparse_dense_matmul(A_factors[i], factor_embeddings)
-
-                    factor_embeddings = tf.sparse.sparse_dense_matmul(D_col_factors[i], factor_embeddings)
-                    factor_embeddings_t = tf.sparse.sparse_dense_matmul(D_col_factors_t[i], factor_embeddings_t)
-
-                    iter_embeddings.append(factor_embeddings)
-                    iter_embeddings_t.append(factor_embeddings_t)
-                    
-                    if t == n_iterations_l - 1:
-                        layer_embeddings = iter_embeddings
-                        layer_embeddings_t = iter_embeddings_t
-
-                    # get the factor-wise embeddings
-                    # .... head_factor_embeddings is a dense tensor with the size of [all_h_list, embed_size/n_factors]
-                    # .... analogous to tail_factor_embeddings
-                    head_factor_embedings = tf.nn.embedding_lookup(factor_embeddings, self.all_h_list)
-                    tail_factor_embedings = tf.nn.embedding_lookup(ego_layer_embeddings[i], self.all_t_list)
-
-                    # .... constrain the vector length
-                    # .... make the following attentive weights within the range of (0,1)
-                    head_factor_embedings = tf.math.l2_normalize(head_factor_embedings, axis=1)
-                    tail_factor_embedings = tf.math.l2_normalize(tail_factor_embedings, axis=1)
-
-                    # get the attentive weights
-                    # .... A_factor_values is a dense tensor with the size of [all_h_list,1]
-                    A_factor_values = tf.reduce_sum(tf.multiply(head_factor_embedings, tf.tanh(tail_factor_embedings)), axis=1)
-
-                    # update the attentive weights
-                    A_iter_values.append(A_factor_values)
-
-                # pack (n_factors) adjacency values into one [n_factors, all_h_list] tensor
-                A_iter_values = tf.stack(A_iter_values, 0)
-                # add all layer-wise attentive weights up.
-                A_values += A_iter_values
-                
-                if t == n_iterations_l - 1:
-                    #layer_embeddings = iter_embeddings
-                    output_factors_distribution.append(A_factors)
-
-            # sum messages of neighbors, [n_users+n_items, embed_size]
-            side_embeddings = tf.concat(layer_embeddings, 1)
-            side_embeddings_t = tf.concat(layer_embeddings_t, 1)
-            
-            ego_embeddings = side_embeddings
-            ego_embeddings_t = side_embeddings_t
-            # concatenate outputs of all layers
-            all_embeddings_t += [ego_embeddings_t]
-            all_embeddings += [ego_embeddings]
-
-        all_embeddings = tf.stack(all_embeddings, 1)
-        all_embeddings = tf.reduce_mean(all_embeddings, axis=1, keepdims=False)
-
-        all_embeddings_t = tf.stack(all_embeddings_t, 1)
-        all_embeddings_t = tf.reduce_mean(all_embeddings_t, axis=1, keep_dims=False)
-
-        u_g_embeddings, i_g_embeddings = tf.split(all_embeddings, [self.n_users, self.n_items], 0)
-        u_g_embeddings_t, i_g_embeddings_t = tf.split(all_embeddings_t, [self.n_users, self.n_items], 0)
-
-        return u_g_embeddings, i_g_embeddings, output_factors_distribution, u_g_embeddings_t, i_g_embeddings_t
 
     # 将邻接矩阵分成fold块
     def _split_A_hat(self, X):

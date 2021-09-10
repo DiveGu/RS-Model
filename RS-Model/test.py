@@ -270,3 +270,26 @@ from utils.parser import parse_args
 #print(set(ret))
 
 
+# 测试tensor类型 x[1] 取一行 一列 
+# 可以直接取
+import tensorflow.compat.v1 as tf
+X=[[0,0,1,2],
+       [1,0,0,3],
+       [0,1,0,4]
+    ]
+
+X=tf.cast(X,tf.float32)
+print(X[0].shape)
+
+
+with tf.Session() as sess:
+    ret = sess.run([X[:,3]])
+ 
+print (ret)  
+
+with tf.Session() as sess:
+    ret = sess.run([X[0]])
+ 
+print (ret)  
+
+
