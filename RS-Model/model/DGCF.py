@@ -115,11 +115,25 @@ class DGCF():
             iter_num_cur=iter_num_layer_list[i]
             # 把整个嵌入划分成factor_num个子嵌入表 每个factor上的维度是factor_dim
             ego_factor_emb_list=tf.split(all_embeddings[-1],factor_num_cur,axis=1)
-            # 不同factor上的A值进行归一化
-            A_values_t=tf.nn.softmax(A_values,axis=0)
+            # 通过上一步（初始的）A_values 计算出在每个factor上的A_score A_score_Laplace
+            A_factors, D_col_factors, D_row_factors=self._convert_A_values_to_A_factors_tensor(factor_num_cur, A_values, pick=False)
             # 动态路由 迭代iter_num次
             for t in range(iter_num_cur):
-                A_values_t=A_values_t
+                # 对于每个factor进行迭代更新所有Edge的score
+                if(t==0):
+                    ego_factor_emb_list_t=[x for x in ego_factor_emb_list]
+                for k in range(factor_num_cur):
+                    # 卷积
+                    ego_factor_emb_list_t[k]=tf.matmul(tf.matmul(D_col_factors[k],D_row_factors[k]),ego_factor_emb_list_t[k])
+                    # 迭代更新score
+                    # 取所有Edge的头节点
+                    head_node_embeddings=tf.nn.embedding_lookup(ego_factor_emb_list_t[k],self.all_h_list) # [Edge,factor_dim]
+                    # 取所有Edge的尾节点
+                    tail_node_embeddings=tf.nn.embedding_lookup(ego_factor_emb_list[k],self.all_t_list) # [Edge,factor_dim]
+                    # 更新score
+                    A_factors[k]=A_factors[k]+tf.nn.tanh(tf.reduce_sum(tf.multiply(head_node_embeddings,tail_node_embeddings),keepdims=False)) # [Edge]+[Edge]
+
+                break
 
         return
 
@@ -140,6 +154,7 @@ class DGCF():
         D_row_factors = []
         # 邻接矩阵（所有Edge）的头尾节点
         A_indices = np.mat([self.all_h_list, self.all_t_list]).transpose() # [2,Edge] -> [Edge,2]
+        # D_indices是[U+I,U+I]矩阵中对角线的idx
         D_indices = np.mat([list(range(self.n_users+self.n_items)), list(range(self.n_users+self.n_items))]).transpose() # [2,U+I] -> [U+I,2]
 
         # 【step 1】：对于A按照factor维度进行softmax
@@ -168,8 +183,9 @@ class DGCF():
             D_i_row_scores = 1/tf.math.sqrt(tf.sparse_reduce_sum(A_i_tensor, axis=0,keepdims=False)) # [,U+I]
             
             # 【2-3】:重新修正两个Laplace 稀疏tensor 的形状
-            D_i_col_tensor = tf.SparseTensor(D_indices, D_i_col_scores, self.A_in_shape)
-            D_i_row_tensor = tf.SparseTensor(D_indices, D_i_row_scores, self.A_in_shape)
+            # 形状由 [U+I] -> [U+I,U+I]，变成一个只有对角线非0的矩阵
+            D_i_col_tensor = tf.SparseTensor(D_indices, D_i_col_scores, self.A_in_shape) # [U+I,U+I]
+            D_i_row_tensor = tf.SparseTensor(D_indices, D_i_row_scores, self.A_in_shape) # [U+I,U+I]
 
             A_factors.append(A_i_tensor)
             D_col_factors.append(D_i_col_tensor)
