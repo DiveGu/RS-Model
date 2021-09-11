@@ -109,33 +109,53 @@ class DGCF():
         # 初始在各个factor上的分布 [4,Edge]
         A_values = tf.ones(shape=[self.n_factors, len(self.all_h_list)])
 
-        # 做L层卷积
+        # 【step 1】：做L层卷积
         for i in range(self.layer_num):
             factor_num_cur=factor_num_layer_list[i]
             iter_num_cur=iter_num_layer_list[i]
             # 把整个嵌入划分成factor_num个子嵌入表 每个factor上的维度是factor_dim
             ego_factor_emb_list=tf.split(all_embeddings[-1],factor_num_cur,axis=1)
-            # 通过上一步（初始的）A_values 计算出在每个factor上的A_score A_score_Laplace
-            A_factors, D_col_factors, D_row_factors=self._convert_A_values_to_A_factors_tensor(factor_num_cur, A_values, pick=False)
-            # 动态路由 迭代iter_num次
+          
+            # 【step 2】：动态路由 迭代iter_num次
             for t in range(iter_num_cur):
                 # 对于每个factor进行迭代更新所有Edge的score
                 if(t==0):
                     ego_factor_emb_list_t=[x for x in ego_factor_emb_list]
+                    A_factors_update=[]
+
+                # 通过上一步（初始的）A_values 计算出在每个factor上的A_score A_score_Laplace
+                A_factors, D_col_factors, D_row_factors=self._convert_A_values_to_A_factors_tensor(factor_num_cur, A_values, pick=False)
                 for k in range(factor_num_cur):
-                    # 卷积
-                    ego_factor_emb_list_t[k]=tf.matmul(tf.matmul(D_col_factors[k],D_row_factors[k]),ego_factor_emb_list_t[k])
-                    # 迭代更新score
+                    # 【step 2-1】：卷积
+                    # D_col_factors[i] * A_factors[i] * D_col_factors[i] 为拉普拉斯矩阵
+                    # ego_factor_emb_list相当于u_0，ego_factor_emb_list_t相当于u_t
+                    ego_factor_emb_list_t[k]=tf.sparse.sparse_dense_matmul(D_col_factors[k],ego_factor_emb_list[k])
+                    ego_factor_emb_list_t[k]=tf.sparse.sparse_dense_matmul(A_factors[k],ego_factor_emb_list_t[k])
+                    ego_factor_emb_list_t[k]=tf.sparse.sparse_dense_matmul(D_col_factors[k],ego_factor_emb_list_t[k])
+                    
+                    # 【step 2-2】：迭代更新score
                     # 取所有Edge的头节点
                     head_node_embeddings=tf.nn.embedding_lookup(ego_factor_emb_list_t[k],self.all_h_list) # [Edge,factor_dim]
                     # 取所有Edge的尾节点
                     tail_node_embeddings=tf.nn.embedding_lookup(ego_factor_emb_list[k],self.all_t_list) # [Edge,factor_dim]
-                    # 更新score
-                    A_factors[k]=A_factors[k]+tf.nn.tanh(tf.reduce_sum(tf.multiply(head_node_embeddings,tail_node_embeddings),keepdims=False)) # [Edge]+[Edge]
+                    ## 更新score
+                    #A_factors[k]=A_factors[k]+tf.reduce_sum(tf.multiply(head_node_embeddings,tf.nn.tanh(tail_node_embeddings)),keepdims=False) # [Edge]+[Edge]
+                    A_factors_update.append(tf.reduce_sum(tf.multiply(head_node_embeddings,tf.nn.tanh(tail_node_embeddings)),keepdims=False)) # [Edge]
 
-                break
+            # 【step 2-3】：完成【step 2-1】【step 2-2】
+            # 因为A_factor_score在上述的更新中是按照factor一个一个更新的（A_factor_score的一行） 
+            A_factors_update_values=tf.stack(A_factors_update) # [Eage] -> [factor_num,Edge]
+            A_values+=A_factors_update_values
+            # 【step 2-4】：完成一层的卷积操作
+            all_embeddings.append(tf.concat(ego_factor_emb_list_t,axis=1))
 
-        return
+        # 把各层得到的嵌入相加再拆出user item emb
+        all_embeddings = tf.stack(all_embeddings, 1) # -> [U+I,layer_num+1,emb_dim]
+        all_embeddings = tf.reduce_mean(all_embeddings, axis=1, keepdims=False) # -> [U+I,emb_dim]
+
+        user_final_embeddings,item_final_embeddings=tf.split(all_embeddings,[self.n_users,self.n_items],axis=0)
+
+        return user_final_embeddings,item_final_embeddings
 
     # 传入所有factor的A_values 计算每个factor下的A_score以及A_score的拉普拉斯矩阵
     def _convert_A_values_to_A_factors_tensor(self, f_num, A_factor_values, pick=True):
