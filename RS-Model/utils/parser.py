@@ -62,7 +62,7 @@ def parse_args():
 
     parser.add_argument('--embed_size',type=int,default=20,
                         help='CF embedding size')
-    parser.add_argument('--regs', nargs='?', default='[1e-5,1e-5,1e-8]',
+    parser.add_argument('--regs', nargs='?', default='[1e-5,1e-6,1e-8]',
                         help='Regularization.')
     parser.add_argument('--lr', type=float, default=1e-3,
                         help='Learning rate.')

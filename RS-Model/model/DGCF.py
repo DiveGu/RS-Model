@@ -73,16 +73,24 @@ class DGCF():
     # 构造模型
     def _forward(self):
         # 1 获取最终嵌入
-        self.user_final_embeddings, self.item_final_embeddings,output_factors_distribution = self._factor_dynamic_routing()
+        self.user_final_embeddings, self.item_final_embeddings,self.output_factors_distribution = self._factor_dynamic_routing()
         # 2 查嵌入表获得u i表示
         u_e=tf.nn.embedding_lookup(self.user_final_embeddings,self.users) 
         pos_i_e=tf.nn.embedding_lookup(self.item_final_embeddings,self.pos_items)
         neg_i_e=tf.nn.embedding_lookup(self.item_final_embeddings,self.neg_items)
         # 3 预测评分
         self.batch_predictions=tf.reduce_sum(tf.multiply(u_e,pos_i_e),axis=1) # [N,1]
-        # 4 构造损失函数 优化
+        # 4 构造cf损失函数
         self.mf_loss,self.reg_loss=self._creat_cf_loss(u_e,pos_i_e,neg_i_e)
-        self.loss=self.mf_loss+self.reg_loss
+        # 4 构造factor独立性损失函数
+        if(self.regs[1]<1e-5):
+            self.factor_loss=0.
+        else:
+            self.factor_loss=self._creat_factor_loss_cos(tf.split(self.user_final_embeddings,self.factor_num,axis=1),self.users)+\
+                                    self._creat_factor_loss_cos(tf.split(self.item_final_embeddings,self.factor_num,axis=1),self.pos_items)+\
+                                    self._creat_factor_loss_cos(tf.split(self.item_final_embeddings,self.factor_num,axis=1),self.neg_items)
+
+        self.loss=self.mf_loss+self.reg_loss+self.factor_loss
 
         self.opt=tf.train.AdamOptimizer(learning_rate=self.lr).minimize(self.loss)
 
@@ -130,6 +138,10 @@ class DGCF():
                     head_node_embeddings=tf.nn.embedding_lookup(ego_factor_emb_list_t[k],self.all_h_list) # [Edge,factor_dim]
                     # 取所有Edge的尾节点
                     tail_node_embeddings=tf.nn.embedding_lookup(ego_factor_emb_list[k],self.all_t_list) # [Edge,factor_dim]
+                    # 将add score限制在(-1,1)之间
+                    head_node_embeddings = tf.math.l2_normalize(head_node_embeddings, axis=1)
+                    tail_node_embeddings = tf.math.l2_normalize(tail_node_embeddings, axis=1)
+                    
                     ## 更新score
                     #A_factors[k]=A_factors[k]+tf.reduce_sum(tf.multiply(head_node_embeddings,tf.nn.tanh(tail_node_embeddings)),keepdims=False) # [Edge]+[Edge]
                     A_factors_update.append(tf.reduce_sum(tf.multiply(head_node_embeddings,tf.nn.tanh(tail_node_embeddings)),axis=1,keepdims=False)) # [Edge]
@@ -140,7 +152,7 @@ class DGCF():
                 A_values+=A_factors_update_values
 
                 # 存储最终的factor_score分布
-                if(t==iter_num_cur):
+                if(t==iter_num_cur-1):
                     output_factors_distribution.append(A_factors)
 
             # 【step 2-4】：完成一层的卷积操作
@@ -258,6 +270,26 @@ class DGCF():
 
         return mf_loss,reg_loss
 
+    # 构造独立性损失函数[cos距离]
+    def _creat_factor_loss_cos(self,factor_emb_list,ids):
+        emb_list=[]
+        for emb in factor_emb_list:
+            emb_list.append(tf.nn.embedding_lookup(emb,ids))
+       
+        def get_cos(X_list):
+            sum_square=tf.square(tf.add_n(X_list)) # [N,k]
+            square_sum=[]
+            for X in X_list:
+                square_sum.append(tf.square(X)) # [N,k]
+            square_sum=tf.square(tf.add_n(square_sum))
+
+            return 0.5*tf.sqrt(tf.reduce_sum(tf.square(sum_square-square_sum)))
+
+        # 计算cos距离
+        factor_loss=get_cos(emb_list)
+        factor_loss=self.regs[1]*factor_loss
+
+        return factor_loss
 
     # 统计参数量
     def _static_params(self):
@@ -273,9 +305,11 @@ class DGCF():
 
     # train
     def train(self,sess,feed_dict):
-        return sess.run([self.opt,self.loss,self.mf_loss,self.reg_loss],feed_dict)
+        return sess.run([self.opt,self.loss,self.mf_loss,self.factor_loss],feed_dict)
 
     # predict
     def predict(self,sess,feed_dict):
         batch_predictions=sess.run(self.batch_predictions,feed_dict)
         return batch_predictions
+
+    # 
