@@ -72,16 +72,16 @@ class Data_Graph(Data):
 
 
 
-from utils.parser import parse_args
-args = parse_args()
-data_path='{}experiment_data/{}/{}_{}/'.format(args.data_path,args.dataset,args.prepro,args.test_method)
-# 加载数据类 生成batch_data
-data_generator=Data_Graph(data_path,args.batch_size)
-A=data_generator.get_adj_matrix()[0].tocoo()
+#from utils.parser import parse_args
+#args = parse_args()
+#data_path='{}experiment_data/{}/{}_{}/'.format(args.data_path,args.dataset,args.prepro,args.test_method)
+## 加载数据类 生成batch_data
+#data_generator=Data_Graph(data_path,args.batch_size)
+#A=data_generator.get_adj_matrix()[0].tocoo()
 
-print(A.row.shape)
-print(A.data.shape)
+#print(A.row.shape)
+#print(A.data.shape)
 
-print(A.row[:10])
-print(A.col[:10])
-print(A.data[:10])
+#print(A.row[:10])
+#print(A.col[:10])
+#print(A.data[:10])

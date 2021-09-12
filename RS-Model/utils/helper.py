@@ -48,3 +48,10 @@ def early_stopping(log_value, best_value, stopping_step, expected_order='acc', f
     else:
         should_stop = False
     return best_value, stopping_step, should_stop
+
+# DGCF在main中的data_config需要
+def get_head_tail_list(X):
+    tmp = X.tocoo()
+    all_h_list = list(tmp.row)
+    all_t_list = list(tmp.col)
+    return all_h_list,all_t_list

@@ -53,10 +53,27 @@ class DGCF():
         # 模型参数量
         self._static_params()
 
+    # 初始化模型参数
+    def _init_weights(self):
+        all_weights=dict()
+
+        initializer=tensorflow.contrib.layers.xavier_initializer()
+        if(self.pretrain_data==None):
+            all_weights['user_embedding']=tf.Variable(initializer([self.n_users,self.emb_dim]),name='user_embedding')
+            all_weights['item_embedding']=tf.Variable(initializer([self.n_items,self.emb_dim]),name='item_embedding')
+            print('using xavier initialization')        
+        else:
+            all_weights['user_embedding']=tf.Variable(initial_value=self.pretrain_data['user_embed'],trainable=True,
+                                                      name='user_embedding',dtype=tf.float32)
+            all_weights['item_embedding']=tf.Variable(initial_value=self.pretrain_data['item_embed'],trainable=True,
+                                                      name='item_embedding',dtype=tf.float32)
+            print('using pretrained user/item embeddings')
+        return all_weights
+
     # 构造模型
     def _forward(self):
         # 1 获取最终嵌入
-        self.user_final_embeddings, self.item_final_embeddings = self._create_lightgcn_embed()
+        self.user_final_embeddings, self.item_final_embeddings,output_factors_distribution = self._factor_dynamic_routing()
         # 2 查嵌入表获得u i表示
         u_e=tf.nn.embedding_lookup(self.user_final_embeddings,self.users) 
         pos_i_e=tf.nn.embedding_lookup(self.item_final_embeddings,self.pos_items)
@@ -69,33 +86,7 @@ class DGCF():
 
         self.opt=tf.train.AdamOptimizer(learning_rate=self.lr).minimize(self.loss)
 
-
-    # 获取GCN最后的嵌入表
-    def _create_lightgcn_embed(self):
-        A_fold_hat = self._split_A_hat(self.norm_adj)
-        
-        ego_embeddings = tf.concat([self.weights['user_embedding'], self.weights['item_embedding']], axis=0) # [u+i,k]
-        all_embeddings = [ego_embeddings]
-        
-        # 进行多层GCN
-        for k in range(0, self.layer_num):
-
-            temp_embed = []
-            # 原始：L*H:[N,N] [N,K] -> [N,K]
-            # 分块：将L[N,N] 分成了 [N//n_fold,N],[N//n_fold,N],...,[N-[N//n_fold*(n_fold-1)],N]
-            for f in range(self.n_fold):
-                # [N//n_fold,N] [N,K] -> [N//n_fold,K]
-                temp_embed.append(tf.sparse_tensor_dense_matmul(A_fold_hat[f], ego_embeddings))
-
-            side_embeddings = tf.concat(temp_embed, 0) # 按照行拼起来还是 [N,K]
-            ego_embeddings = side_embeddings
-            all_embeddings += [ego_embeddings]
-
-        all_embeddings=tf.stack(all_embeddings,1) # tensor拼接 [N,K] -> [N,1+layer_num,K]
-        all_embeddings=tf.reduce_mean(all_embeddings,axis=1,keepdims=False) # 平均所有嵌入表 [N,K]
-        u_g_embeddings, i_g_embeddings = tf.split(all_embeddings, [self.n_users, self.n_items], 0) # H拆成U I
-        return u_g_embeddings, i_g_embeddings
-    
+ 
     # 模型主体架构 在每个factor上按照score进行动态路由
     def _factor_dynamic_routing(self):
         # 拼接u i 获取所有节点的整个嵌入表
@@ -105,47 +96,53 @@ class DGCF():
         # 每层卷积时的factor_num 路由机制的迭代次数
         factor_num_layer_list=[self.factor_num,self.factor_num,self.factor_num,self.factor_num]
         iter_num_layer_list=[self.n_iteration,self.n_iteration,self.n_iteration,self.n_iteration] 
-
+        # 最终每个Edge在各个factor上的分布
+        output_factors_distribution = []
         # 初始在各个factor上的分布 [4,Edge]
-        A_values = tf.ones(shape=[self.n_factors, len(self.all_h_list)])
+        A_values = tf.ones(shape=[self.factor_num, len(self.all_h_list)])
 
-        # 【step 1】：做L层卷积
+        # 【step 1】：做L层卷积 每层卷积迭代t次
         for i in range(self.layer_num):
             factor_num_cur=factor_num_layer_list[i]
             iter_num_cur=iter_num_layer_list[i]
             # 把整个嵌入划分成factor_num个子嵌入表 每个factor上的维度是factor_dim
             ego_factor_emb_list=tf.split(all_embeddings[-1],factor_num_cur,axis=1)
-          
+            # 每层卷积需要一个存放H_t的变量
+            ego_factor_emb_list_t=[x for x in ego_factor_emb_list]
+
             # 【step 2】：动态路由 迭代iter_num次
             for t in range(iter_num_cur):
-                # 对于每个factor进行迭代更新所有Edge的score
-                if(t==0):
-                    ego_factor_emb_list_t=[x for x in ego_factor_emb_list]
-                    A_factors_update=[]
-
+                # 每次动态路由需要存放A_values需要更新的值
+                A_factors_update=[]
                 # 通过上一步（初始的）A_values 计算出在每个factor上的A_score A_score_Laplace
                 A_factors, D_col_factors, D_row_factors=self._convert_A_values_to_A_factors_tensor(factor_num_cur, A_values, pick=False)
+
                 for k in range(factor_num_cur):
-                    # 【step 2-1】：卷积
+                    # 【step 2-1】：根据 H_0 和 S_t 计算 H_t
                     # D_col_factors[i] * A_factors[i] * D_col_factors[i] 为拉普拉斯矩阵
                     # ego_factor_emb_list相当于u_0，ego_factor_emb_list_t相当于u_t
                     ego_factor_emb_list_t[k]=tf.sparse.sparse_dense_matmul(D_col_factors[k],ego_factor_emb_list[k])
                     ego_factor_emb_list_t[k]=tf.sparse.sparse_dense_matmul(A_factors[k],ego_factor_emb_list_t[k])
                     ego_factor_emb_list_t[k]=tf.sparse.sparse_dense_matmul(D_col_factors[k],ego_factor_emb_list_t[k])
                     
-                    # 【step 2-2】：迭代更新score
+                    # 【step 2-2】：迭代更新score 根据 H_t H_0 和 S_t 计算 S_t+1
                     # 取所有Edge的头节点
                     head_node_embeddings=tf.nn.embedding_lookup(ego_factor_emb_list_t[k],self.all_h_list) # [Edge,factor_dim]
                     # 取所有Edge的尾节点
                     tail_node_embeddings=tf.nn.embedding_lookup(ego_factor_emb_list[k],self.all_t_list) # [Edge,factor_dim]
                     ## 更新score
                     #A_factors[k]=A_factors[k]+tf.reduce_sum(tf.multiply(head_node_embeddings,tf.nn.tanh(tail_node_embeddings)),keepdims=False) # [Edge]+[Edge]
-                    A_factors_update.append(tf.reduce_sum(tf.multiply(head_node_embeddings,tf.nn.tanh(tail_node_embeddings)),keepdims=False)) # [Edge]
+                    A_factors_update.append(tf.reduce_sum(tf.multiply(head_node_embeddings,tf.nn.tanh(tail_node_embeddings)),axis=1,keepdims=False)) # [Edge]
 
-            # 【step 2-3】：完成【step 2-1】【step 2-2】
-            # 因为A_factor_score在上述的更新中是按照factor一个一个更新的（A_factor_score的一行） 
-            A_factors_update_values=tf.stack(A_factors_update) # [Eage] -> [factor_num,Edge]
-            A_values+=A_factors_update_values
+                # 【step 2-3】：完成【step 2-1】【step 2-2】
+                # 因为A_factor_score在上述的更新中是按照factor一个一个更新的（A_factor_score的一行）
+                A_factors_update_values=tf.stack(A_factors_update,axis=0) # [Eage] -> [factor_num,Edge]
+                A_values+=A_factors_update_values
+
+                # 存储最终的factor_score分布
+                if(t==iter_num_cur):
+                    output_factors_distribution.append(A_factors)
+
             # 【step 2-4】：完成一层的卷积操作
             all_embeddings.append(tf.concat(ego_factor_emb_list_t,axis=1))
 
@@ -155,7 +152,7 @@ class DGCF():
 
         user_final_embeddings,item_final_embeddings=tf.split(all_embeddings,[self.n_users,self.n_items],axis=0)
 
-        return user_final_embeddings,item_final_embeddings
+        return user_final_embeddings,item_final_embeddings,output_factors_distribution
 
     # 传入所有factor的A_values 计算每个factor下的A_score以及A_score的拉普拉斯矩阵
     def _convert_A_values_to_A_factors_tensor(self, f_num, A_factor_values, pick=True):
@@ -245,23 +242,6 @@ class DGCF():
         # 创建稀疏矩阵、indices是index[row col]、data是值
         # 注：加上shape 因为可能有全0行 全0列 所以coo形式必须加shape
         return tf.SparseTensor(indices, coo.data, coo.shape)
-
-    # 初始化模型参数
-    def _init_weights(self):
-        all_weights=dict()
-
-        initializer=tensorflow.contrib.layers.xavier_initializer()
-        if(self.pretrain_data==None):
-            all_weights['user_embedding']=tf.Variable(initializer([self.n_users,self.emb_dim]),name='user_embedding')
-            all_weights['item_embedding']=tf.Variable(initializer([self.n_items,self.emb_dim]),name='item_embedding')
-            print('using xavier initialization')        
-        else:
-            all_weights['user_embedding']=tf.Variable(initial_value=self.pretrain_data['user_embed'],trainable=True,
-                                                      name='user_embedding',dtype=tf.float32)
-            all_weights['item_embedding']=tf.Variable(initial_value=self.pretrain_data['item_embed'],trainable=True,
-                                                      name='item_embedding',dtype=tf.float32)
-            print('using pretrained user/item embeddings')
-        return all_weights
 
     # 构造cf损失函数
     def _creat_cf_loss(self,u_e,pos_i_e,neg_i_e):

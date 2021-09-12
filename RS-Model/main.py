@@ -18,6 +18,8 @@ from model.NeuMF import NeuMF
 from model.DisenMF import DisenMF
 from model.LightGCN import LightGCN
 from model.NAIS import NAIS
+from model.DGCF import DGCF
+
 from utils.load_data import Data
 from utils.load_data_history import Data_History
 from utils.load_data_graph import Data_Graph
@@ -55,6 +57,18 @@ def main():
         adj_matrix, norm_adj_matrix, mean_adj_matrix=data_generator.get_adj_matrix()
         data_generator._just_test()
         data_config['norm_adj']=norm_adj_matrix
+    elif(args.model_type in ['DGCF']):
+        data_generator=Data_Graph(data_path,args.batch_size)
+        data_config=dict()
+        data_config['n_users']=data_generator.n_users
+        data_config['n_items']=data_generator.n_items
+        adj_matrix,_,_=data_generator.get_adj_matrix()
+        data_config['norm_adj']=adj_matrix
+        all_h_list,all_t_list=get_head_tail_list(adj_matrix)
+        data_config['all_h_list']=all_h_list
+        data_config['all_t_list']=all_t_list
+        
+
     elif(args.model_type in ['NAIS']):
         data_generator=Data_History(data_path,args.batch_size)
         data_config=dict()
@@ -78,6 +92,8 @@ def main():
         model=LightGCN(data_config,pretrain_data,args)
     elif(args.model_type=='NAIS'):
         model=NAIS(data_config,pretrain_data,args)
+    elif(args.model_type=='DGCF'):
+        model=DGCF(data_config,pretrain_data,args)
 
     # 加载预训练模型参数（tf保存的整个模型参数）
     if args.pretrain==1:

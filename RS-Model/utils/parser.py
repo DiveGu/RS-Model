@@ -22,8 +22,8 @@ def parse_args():
     parser.add_argument('--test_method',nargs='?',default='ufo',
                         help='Choose a way to get test dataset from {fo, loo, tloo, tfo}')
     # 模型参数
-    parser.add_argument('--model_type',nargs='?',default='NAIS',
-                        help='Choose a model from {bprmf,neumf,DisenMF,LightGCN,NAIS}.')
+    parser.add_argument('--model_type',nargs='?',default='DGCF',
+                        help='Choose a model from {bprmf,neumf,DisenMF,LightGCN,NAIS,DGCF}.')
     parser.add_argument('--model_des',nargs='?',default='train_test',
                         help='record something')
 
@@ -33,22 +33,32 @@ def parse_args():
     #                    help='MLP sizes.')
     ## ---------------------------------------------------------
 
-    # DisenMF 参数
+    ## DisenMF 参数
+    #parser.add_argument('--factor_num', type=int,default=4,
+    #                    help='factor num.')
+    #parser.add_argument('--factor_dim', type=int,default=5,
+    #                    help='factor num.')
+    #parser.add_argument('--factor_class_layers', nargs='?', default='[5,5]',
+    #                    help='factor class layers.')
+    ## ---------------------------------------------------------
+
+    ## LightGCN参数
+    #parser.add_argument('--layers', nargs='?', default='[40,20]',
+    #                    help='MLP sizes in NGCF.')
+    #parser.add_argument('--layer_num', type=int,default=2,
+    #                    help='layer_num in GCN.')
+    ## ---------------------------------------------------------
+    
+    # DGCF参数
+    parser.add_argument('--n_iteration', type=int,default=1,
+                        help='iteration_num in dynamic_routing.')
+    parser.add_argument('--layer_num', type=int,default=1,
+                        help='layer_num in DGCF.')
     parser.add_argument('--factor_num', type=int,default=4,
                         help='factor num.')
-    parser.add_argument('--factor_dim', type=int,default=5,
-                        help='factor num.')
-    parser.add_argument('--factor_class_layers', nargs='?', default='[5,5]',
-                        help='factor class layers.')
+    #parser.add_argument('--factor_dim', type=int,default=5,
+    #                    help='factor num.')
     # ---------------------------------------------------------
-
-    # LightGCN参数
-    parser.add_argument('--layers', nargs='?', default='[40,20]',
-                        help='MLP sizes in NGCF.')
-    parser.add_argument('--layer_num', type=int,default=2,
-                        help='layer_num in GCN.')
-    # ---------------------------------------------------------
-
 
     parser.add_argument('--embed_size',type=int,default=20,
                         help='CF embedding size')
