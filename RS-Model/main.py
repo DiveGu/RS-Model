@@ -76,7 +76,8 @@ def main():
         data_config['n_items']=data_generator.n_items
 
     # 构造pretrain_data
-    if args.pretrain in [-1]:
+    # 加载预训练模型参数1：预训练的嵌入
+    if args.pretrain in [1]:
         pretrain_data=load_pretrain_data(args)
     else:
         pretrain_data=None
@@ -95,19 +96,57 @@ def main():
     elif(args.model_type=='DGCF'):
         model=DGCF(data_config,pretrain_data,args)
 
-    # 加载预训练模型参数（tf保存的整个模型参数）
-    if args.pretrain==1:
-        # TODO
-        a=1
-
     """
     **********************************************
     初始化sess
     """
+    saver = tf.train.Saver()
+    # 当前的模型参数要不要都保存
+    if(args.save_model_flag==1):
+        model_parameters_path="{}{}/{}_{}/{}/model_parameters/".format(args.proj_path,args.dataset,args.prepro,args.test_method,args.model_type)
+        save_saver = tf.train.Saver(max_to_keep=1)
+        ensureDir(model_parameters_path)
+
     config = tf.ConfigProto()
     config.gpu_options.allow_growth = True
     sess = tf.Session(config=config)
     sess.run(tf.global_variables_initializer())
+
+    """
+    ********************************************** 
+    使用保存的模型参数继续训练
+    """
+    # 加载预训练模型参数2：tf保存的整个模型参数
+    if args.pretrain==2:
+        model_parameters_path="{}/{}/{}_{}/{}/model_parameters".format(args.proj_path,args.dataset,args.prepro,args.test_method,args.model_type)
+        ckpt = tf.train.get_checkpoint_state(os.path.dirname(model_parameters_path + '/checkpoint'))
+        if ckpt and ckpt.model_checkpoint_path:
+            #sess.run(tf.global_variables_initializer())
+            saver.restore(sess, ckpt.model_checkpoint_path) # 从tf model path中读取所有变量
+            print('load the pretrained model parameters from: ', model_parameters_path)
+
+            # *********************************************************
+            # 获取保存的模型在test上的表现
+            if args.pretrain_report == 1:
+                users_to_test = list(data_generator.test_set.keys())
+                ret = test(sess, model,data_generator, users_to_test, drop_flag=False, batch_test_flag=False)
+                cur_best_pre_0 = ret['recall'][args.best_k_idx]
+
+                pretrain_recall_str="pretrained model: recall:[{}] ndcg:[{}] hit:[{}] precision:[{}] auc:[{}]".\
+                        format(
+                                convert_list_2_str(ret['recall'],5),convert_list_2_str(ret['ndcg'],5),
+                                convert_list_2_str(ret['hit_ratio'],5),convert_list_2_str(ret['precision'],5),
+                                str(auc_log[-1])[:5],
+                            )
+                print(pretrain_recall_str)
+        else:
+            #sess.run(tf.global_variables_initializer())
+            cur_best_pre_0 = 0.
+            print('can not find saved model parameters.')
+    else:
+        cur_best_pre_0 = 0.
+        print('without pretraining.')
+
     """
     ********************************************** 
     训练
@@ -184,6 +223,15 @@ def main():
                                 convert_list_2_str(hit_log[-1],5),str(auc_log[-1])[:5],
                             )
         print(test_recall_str)
+
+        """
+        ********************************************** 
+        并且如果评价指标上升的话 保存模型参数（save_model_flag==1）
+        """
+        if(args.save_model_flag==1 and ret['recall'][args.best_k_idx]>cur_best_pre_0):
+            cur_best_pre_0=ret['recall'][args.best_k_idx]
+            save_saver.save(sess, model_parameters_path, global_step=epoch)
+            print('save the model parameters in path: ', model_parameters_path)
 
     """
     **********************************************

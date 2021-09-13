@@ -84,7 +84,7 @@ class DGCF():
         self.mf_loss,self.reg_loss=self._creat_cf_loss(u_e,pos_i_e,neg_i_e)
         # 4 构造factor独立性损失函数
         if(self.regs[1]<1e-5):
-            self.factor_loss=0.
+            self.factor_loss=tf.constant(0.0)
         else:
             self.factor_loss=self._creat_factor_loss_cos(tf.split(self.user_final_embeddings,self.factor_num,axis=1),self.users)+\
                                     self._creat_factor_loss_cos(tf.split(self.item_final_embeddings,self.factor_num,axis=1),self.pos_items)+\

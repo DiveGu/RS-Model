@@ -22,7 +22,7 @@ def parse_args():
     parser.add_argument('--test_method',nargs='?',default='ufo',
                         help='Choose a way to get test dataset from {fo, loo, tloo, tfo}')
     # 模型参数
-    parser.add_argument('--model_type',nargs='?',default='DGCF',
+    parser.add_argument('--model_type',nargs='?',default='bprmf',
                         help='Choose a model from {bprmf,neumf,DisenMF,LightGCN,NAIS,DGCF}.')
     parser.add_argument('--model_des',nargs='?',default='train_test',
                         help='record something')
@@ -50,7 +50,7 @@ def parse_args():
     ## ---------------------------------------------------------
     
     # DGCF参数
-    parser.add_argument('--n_iteration', type=int,default=1,
+    parser.add_argument('--n_iteration', type=int,default=5,
                         help='iteration_num in dynamic_routing.')
     parser.add_argument('--layer_num', type=int,default=1,
                         help='layer_num in DGCF.')
@@ -74,8 +74,16 @@ def parse_args():
     parser.add_argument('--verbose', type=int, default=10,
                         help='Display every verbose epoch.')
 
+    # 模型是否需要读取【预训练参数】或者【保存的所有模型参数】
     parser.add_argument('--pretrain', type=int, default=0,
-                        help='0: No pretrain, -1: Pretrain with the learned embeddings, 1:Pretrain with stored models.')
+                        help='0: No pretrain, 1: Pretrain with the learned embeddings, 2:Pretrain with stored models.')
+    
+    parser.add_argument('--pretrain_report', type=int, default=0,
+                        help='show saved pretrained model preformance or not .. recall')
+    # 是否需要保存模型的参数
+    parser.add_argument('--save_model_flag', type=int, default=1,
+                        help='save model parameters or not.')
+
     # 评价指标K
     parser.add_argument('--Ks', nargs='?', default='[1,5,10,20,50]',
                         help='top K.')
