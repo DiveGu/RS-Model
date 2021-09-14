@@ -78,11 +78,14 @@ def parse_args():
     parser.add_argument('--pretrain', type=int, default=0,
                         help='0: No pretrain, 1: Pretrain with the learned embeddings, 2:Pretrain with stored models.')
     
-    parser.add_argument('--pretrain_report', type=int, default=0,
+    parser.add_argument('--pretrain_report', type=int, default=1,
                         help='show saved pretrained model preformance or not .. recall')
     # 是否需要保存模型的参数
-    parser.add_argument('--save_model_flag', type=int, default=1,
+    parser.add_argument('--save_model_flag', type=int, default=0,
                         help='save model parameters or not.')
+    # 是否需要保存模型部分参数（嵌入、注意力分布等）
+    parser.add_argument('--save_model_tensor_flag', type=int, default=1,
+                        help='save some tensors in model or not.')
 
     # 评价指标K
     parser.add_argument('--Ks', nargs='?', default='[1,5,10,20,50]',

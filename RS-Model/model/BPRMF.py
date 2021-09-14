@@ -2,6 +2,7 @@
 - BPRMF
 - 2021/5/9
 """
+import numpy as np
 import tensorflow.compat.v1 as tf
 import tensorflow
 import os
@@ -109,3 +110,12 @@ class BPRMF():
     def predict(self,sess,feed_dict):
         batch_predictions=sess.run(self.batch_predictions,feed_dict)
         return batch_predictions
+
+    # save learned embeddings
+    def save_tensor(self,sess,path):
+        user_embed, item_embed = sess.run(
+            [self.weights['user_embedding'], self.weights['item_embedding']],
+            feed_dict={})
+
+        np.savez(path, user_embed=user_embed, item_embed=item_embed)
+        print('save the weights of fm in path: ', path)

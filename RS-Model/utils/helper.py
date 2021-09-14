@@ -55,3 +55,7 @@ def get_head_tail_list(X):
     all_h_list = list(tmp.row)
     all_t_list = list(tmp.col)
     return all_h_list,all_t_list
+
+# 将list前Num个 拼接成字符串
+def convert_list_2_str(lst,num):
+    return " ".join([str(x)[:num] for x in list(lst)])

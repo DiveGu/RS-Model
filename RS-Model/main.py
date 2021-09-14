@@ -118,7 +118,7 @@ def main():
     """
     # 加载预训练模型参数2：tf保存的整个模型参数
     if args.pretrain==2:
-        model_parameters_path="{}/{}/{}_{}/{}/model_parameters".format(args.proj_path,args.dataset,args.prepro,args.test_method,args.model_type)
+        model_parameters_path="{}{}/{}_{}/{}/model_parameters/".format(args.proj_path,args.dataset,args.prepro,args.test_method,args.model_type)
         ckpt = tf.train.get_checkpoint_state(os.path.dirname(model_parameters_path + '/checkpoint'))
         if ckpt and ckpt.model_checkpoint_path:
             #sess.run(tf.global_variables_initializer())
@@ -128,7 +128,7 @@ def main():
             # *********************************************************
             # 获取保存的模型在test上的表现
             if args.pretrain_report == 1:
-                users_to_test = list(data_generator.test_set.keys())
+                users_to_test = list(data_generator.test_user_dict.keys())
                 ret = test(sess, model,data_generator, users_to_test, drop_flag=False, batch_test_flag=False)
                 cur_best_pre_0 = ret['recall'][args.best_k_idx]
 
@@ -136,7 +136,7 @@ def main():
                         format(
                                 convert_list_2_str(ret['recall'],5),convert_list_2_str(ret['ndcg'],5),
                                 convert_list_2_str(ret['hit_ratio'],5),convert_list_2_str(ret['precision'],5),
-                                str(auc_log[-1])[:5],
+                                str(ret['auc'])[:5],
                             )
                 print(pretrain_recall_str)
         else:
@@ -154,9 +154,6 @@ def main():
     loss_log,pre_log,rec_log,ndcg_log,hit_log,auc_log=[],[],[],[],[],[]
     stopping_step=0
     should_stop=False
-
-    def convert_list_2_str(lst,num):
-        return " ".join([str(x)[:num] for x in list(lst)])
 
     # 训练epoch次数 遍历每个epoch
     for epoch in range(args.epoch):
@@ -228,10 +225,21 @@ def main():
         ********************************************** 
         并且如果评价指标上升的话 保存模型参数（save_model_flag==1）
         """
-        if(args.save_model_flag==1 and ret['recall'][args.best_k_idx]>cur_best_pre_0):
+        if(ret['recall'][args.best_k_idx]>cur_best_pre_0):
             cur_best_pre_0=ret['recall'][args.best_k_idx]
-            save_saver.save(sess, model_parameters_path, global_step=epoch)
-            print('save the model parameters in path: ', model_parameters_path)
+            if(args.save_model_flag==1):
+                save_saver.save(sess, model_parameters_path, global_step=epoch)
+                print('save the model parameters in path: ', model_parameters_path)
+            if(args.save_model_tensor_flag==1):
+                temp_save_path = "{}{}/{}_{}/{}/pretrain_tensor/{}.npz".format(args.proj_path,args.dataset,args.prepro,args.test_method,args.model_type,args.model_type)
+                ensureDir(temp_save_path)
+                model.save_tensor(sess,temp_save_path)
+                #try:
+                #    tmp_path="{}{}/{}_{}/{}/pretrain_tensor/".format(args.proj_path,args.dataset,args.prepro,args.test_method,args.model_type)
+                #    ensureDir(tmp_path)
+                #    model.save_tensor(tmp_path+args.model_type+'.npz')
+                #except:
+                #    print('failed:save the model tensor ')
 
     """
     **********************************************
