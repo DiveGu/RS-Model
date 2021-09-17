@@ -28,7 +28,7 @@ class Data(object):
         #f = open(path+'test_neg.txt','r')
         #test_neg_dict=json.loads(f.read())
 
-        self._statistic_ratings()
+        #self._statistic_ratings()
 
     # 加载训练集
     def _load_ratings_train(self,train_file):

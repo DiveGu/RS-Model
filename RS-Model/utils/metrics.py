@@ -22,7 +22,7 @@ def precision_at_k(r,k):
 
 def hit_at_k(r,k):
     r=np.array(r)[:k]
-    print(r.size)
+    #print(r.size)
     if(np.sum(r)>=1):
         return 1.
     else:
