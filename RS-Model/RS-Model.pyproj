@@ -25,6 +25,7 @@
     <Compile Include="main.py">
       <SubType>Code</SubType>
     </Compile>
+    <Compile Include="model\GNUD.py" />
     <Compile Include="model\DGCF.py">
       <SubType>Code</SubType>
     </Compile>

@@ -19,6 +19,7 @@ from model.DisenMF import DisenMF
 from model.LightGCN import LightGCN
 from model.NAIS import NAIS
 from model.DGCF import DGCF
+from model.GNUD import GNUD
 
 from utils.load_data import Data
 from utils.load_data_history import Data_History
@@ -29,9 +30,10 @@ tf.set_random_seed(SEED)
 
 # 加载预训练的user/item 嵌入
 def load_pretrain_data(args):
-    pre_model='mf'
+    pre_model='bprmf'
 
-    pretrain_path=f'{args.proj_path}pretrain/{args.dataset}/{pre_model}.npz'
+    pretrain_path="{}{}/{}_{}/{}/pretrain_tensor/{}.npz".format(args.proj_path,args.dataset,args.prepro,args.test_method,'BPRMF',pre_model)
+    #pretrain_data=np.load(pretrain_path)
     try:
         pretrain_data=np.load(pretrain_path)
         print(f'load the pretrained {pre_model} model params')
@@ -55,9 +57,8 @@ def main():
         data_config['n_users']=data_generator.n_users
         data_config['n_items']=data_generator.n_items
         adj_matrix, norm_adj_matrix, mean_adj_matrix=data_generator.get_adj_matrix()
-        data_generator._just_test()
         data_config['norm_adj']=norm_adj_matrix
-    elif(args.model_type in ['DGCF']):
+    elif(args.model_type in ['DGCF','GNUD']):
         data_generator=Data_Graph(data_path,args.batch_size)
         data_config=dict()
         data_config['n_users']=data_generator.n_users
@@ -95,6 +96,8 @@ def main():
         model=NAIS(data_config,pretrain_data,args)
     elif(args.model_type=='DGCF'):
         model=DGCF(data_config,pretrain_data,args)
+    elif(args.model_type=='GNUD'):
+        model=GNUD(data_config,pretrain_data,args)
 
     """
     **********************************************
