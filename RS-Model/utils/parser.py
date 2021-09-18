@@ -13,14 +13,14 @@ def parse_args():
     parser.add_argument('--proj_path', nargs='?', default='F:/data/experiment_output/',
                         help='Project path.')
     # 数据集 数据处理参数
-    parser.add_argument('--dataset', nargs='?', default='lastfm',
-                        help='Choose a dataset from {lastfm,gowalla, yelp2018, amazon-book}')
+    parser.add_argument('--dataset', nargs='?', default='ml-1m',
+                        help='Choose a dataset from {lastfm,ml-1m,gowalla, yelp2018, amazon-book}')
 
     parser.add_argument('--prepro',nargs='?',default='5-core',
                         help='Choose data preprocess from {orgin,x-filter,x-core}')
 
-    parser.add_argument('--test_method',nargs='?',default='ufo',
-                        help='Choose a way to get test dataset from {fo, loo, tloo, tfo}')
+    parser.add_argument('--test_method',nargs='?',default='tloo',
+                        help='Choose a way to get test dataset from {fo,ufo, loo, tloo, tfo}')
     # 模型参数
     parser.add_argument('--model_type',nargs='?',default='GNUD',
                         help='Choose a model from {bprmf,neumf,DisenMF,LightGCN,NAIS,DGCF,GNUD}.')

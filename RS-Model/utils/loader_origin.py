@@ -28,6 +28,10 @@ def load_rate(data_path,src='lastfm',prepro='origin',binary=True, pos_threshold=
         df.rename(columns={'userID': 'user', 'artistID': 'item', 'weight': 'rating'}, inplace=True)
         # fake timestamp column
         df['timestamp'] = df['item']
+    elif src=='ml-1m':
+        # user_artists.dat
+        df = pd.read_csv(data_path+'ml-1m/ratings.dat', sep='::',header=None, names=['user','item','rating','timestamp'])
+
 
     # rating >= threshold 作为正样本
     if pos_threshold is not None:

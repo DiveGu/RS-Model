@@ -4,7 +4,7 @@
     <SchemaVersion>2.0</SchemaVersion>
     <ProjectGuid>71c74822-9166-429a-9f86-1834da16c2a8</ProjectGuid>
     <ProjectHome>.</ProjectHome>
-    <StartupFile>main.py</StartupFile>
+    <StartupFile>SASRec_main.py</StartupFile>
     <SearchPath>
     </SearchPath>
     <WorkingDirectory>.</WorkingDirectory>
@@ -51,6 +51,9 @@
     <Compile Include="model\VAERecommender.py" />
     <Compile Include="model\WRMFRecommender.py" />
     <Compile Include="RS_Model.py" />
+    <Compile Include="SASRec_main.py">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Include="test.py">
       <SubType>Code</SubType>
     </Compile>
