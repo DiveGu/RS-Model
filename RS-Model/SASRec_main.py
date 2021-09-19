@@ -197,7 +197,7 @@ class SASRec():
         # 3 得到预测评分
         pos_preidct_scores=tf.nn.sigmoid(self._get_predict_score(his_represention,target_pos_embeddings)) # [N,1,k]
         neg_preidct_scores=tf.nn.sigmoid(self._get_predict_score(his_represention,target_neg_embeddings)) # [N,4,k]
-        self.batch_ratings=tf.squeeze(pos_preidct_scores,axis=1)
+        self.batch_ratings=pos_preidct_scores
         # 4 构造损失函数
         neg_num=tf.dtypes.cast(tf.shape(neg_preidct_scores)[1], tf.int32)
         cf_loss_list=[-tf.math.log(pos_preidct_scores),-tf.math.log(1-neg_preidct_scores)]
@@ -226,7 +226,7 @@ class SASRec():
 
     # 预测
     def predict(self,sess,feed_dict):
-        return sess.run([self.batch_ratings],feed_dict=feed_dict)
+        return sess.run(self.batch_ratings,feed_dict=feed_dict)
 
 # 测试在test上的表现
 def test_performance(predict,K):
