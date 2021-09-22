@@ -85,6 +85,8 @@ class BPRMF():
         diff=tf.log(tf.nn.sigmoid(pos_scores-neg_scores)) # [N,1]
 
         mf_loss=-(tf.reduce_mean(diff)) # [N,1] -> 1
+
+        #mf_loss=tf.reduce_mean(-tf.math.log(tf.nn.sigmoid(pos_scores))-tf.math.log(1-tf.nn.sigmoid(neg_scores)))/2
         reg_loss=self.regs[0]*regular
 
         return mf_loss,reg_loss

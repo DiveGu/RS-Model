@@ -4,7 +4,7 @@
     <SchemaVersion>2.0</SchemaVersion>
     <ProjectGuid>71c74822-9166-429a-9f86-1834da16c2a8</ProjectGuid>
     <ProjectHome>.</ProjectHome>
-    <StartupFile>SASRec_main.py</StartupFile>
+    <StartupFile>main.py</StartupFile>
     <SearchPath>
     </SearchPath>
     <WorkingDirectory>.</WorkingDirectory>
@@ -43,6 +43,9 @@
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="model\NeuMF.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="model\PDCF.py">
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="model\PopRecommender.py" />

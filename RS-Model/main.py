@@ -20,6 +20,7 @@ from model.LightGCN import LightGCN
 from model.NAIS import NAIS
 from model.DGCF import DGCF
 from model.GNUD import GNUD
+from model.PDCF import PDCF
 
 from utils.load_data import Data
 from utils.load_data_history import Data_History
@@ -58,7 +59,7 @@ def main():
         data_config['n_items']=data_generator.n_items
         adj_matrix, norm_adj_matrix, mean_adj_matrix=data_generator.get_adj_matrix()
         data_config['norm_adj']=norm_adj_matrix
-    elif(args.model_type in ['DGCF','GNUD']):
+    elif(args.model_type in ['DGCF','GNUD','PDCF']):
         data_generator=Data_Graph(data_path,args.batch_size)
         data_config=dict()
         data_config['n_users']=data_generator.n_users
@@ -98,6 +99,8 @@ def main():
         model=DGCF(data_config,pretrain_data,args)
     elif(args.model_type=='GNUD'):
         model=GNUD(data_config,pretrain_data,args)
+    elif(args.model_type=='PDCF'):
+        model=PDCF(data_config,pretrain_data,args)
 
     """
     **********************************************

@@ -280,7 +280,7 @@ class GNUD():
 
         regular=tf.nn.l2_loss(u_e)+tf.nn.l2_loss(pos_i_e)+tf.nn.l2_loss(neg_i_e) # 1
 
-        diff=tf.log(tf.nn.sigmoid(pos_scores-neg_scores)) # [N,1]
+        diff=tf.log(tf.nn.sigmoid(4*(pos_scores-neg_scores))) # [N,1]
 
         mf_loss=-(tf.reduce_mean(diff)) # [N,1] -> 1
         reg_loss=self.regs[0]*regular
