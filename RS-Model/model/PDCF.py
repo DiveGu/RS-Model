@@ -32,8 +32,13 @@ class PDCF():
         self.emb_dim=args.embed_size
         self.lr=args.lr
 
-        # factor数量
+        # 总的factor数量
         self.factor_num=args.factor_num
+        # sp factor数量
+        self.special_factor_num=args.special_factor_num
+        # base factor 数量
+        self.base_factor_num=self.factor_num-self.special_factor_num
+
         self.factor_dim=self.emb_dim//self.factor_num
         self.emb_dim=self.factor_num*self.factor_dim # 保证emb_dim/factor_num==factor_dim
 
@@ -75,9 +80,16 @@ class PDCF():
         # 1 获取最终嵌入
         # 1-1 获取base_factor嵌入
         node_base_embeddings,self.output_factors_distribution = self._factor_dynamic_routing()
-        # 1-2 获取high_factor嵌入
-        node_high_embeddings=self._get_high_factor_emb(node_base_embeddings)
-        self.user_final_embeddings,self.item_final_embeddings=self._get_high_factor_emb(node_base_embeddings)
+        ## 1-2 获取high_factor嵌入
+        #node_high_embeddings=self._get_high_factor_emb(node_base_embeddings)
+        #self.user_final_embeddings,self.item_final_embeddings=self._get_high_factor_emb(node_base_embeddings)
+        # 1-2 获取sp_factor嵌入 
+        node_sp_embeddings=tf.concat([self.weights['user_embedding'][:,self.factor_dim*self.base_factor_num:],
+                                   self.weights['item_embedding'][:,self.factor_dim*self.base_factor_num:]], axis=0) # [U+I,k]
+
+        node_high_embeddings=self._get_sp_factor_emb(node_base_embeddings,node_sp_embeddings)
+        #self.user_final_embeddings,self.item_final_embeddings=self._get_high_factor_emb(node_base_embeddings)
+        
         # 1-3 拼接成最终嵌入
         self.user_final_embeddings,self.item_final_embeddings=tf.split(
             tf.concat([node_base_embeddings,node_high_embeddings],axis=1),
@@ -107,16 +119,19 @@ class PDCF():
     # 模型主体架构 在每个factor上按照score进行动态路由
     def _factor_dynamic_routing(self):
         # 拼接u i 获取所有节点的整个嵌入表
-        ego_embeddings = tf.concat([self.weights['user_embedding'], self.weights['item_embedding']], axis=0) # [U+I,k]
+        
+        ego_embeddings = tf.concat([self.weights['user_embedding'][:,0:self.factor_dim*self.base_factor_num],
+                                   self.weights['item_embedding'][:,0:self.factor_dim*self.base_factor_num]], axis=0) # [U+I,k]
         all_embeddings = [ego_embeddings]
+        print(ego_embeddings.shape)
 
         # 每层卷积时的factor_num 路由机制的迭代次数
-        factor_num_layer_list=[self.factor_num,self.factor_num,self.factor_num,self.factor_num]
+        factor_num_layer_list=[self.base_factor_num,self.base_factor_num,self.base_factor_num,self.base_factor_num]
         iter_num_layer_list=[self.n_iteration,self.n_iteration,self.n_iteration,self.n_iteration] 
         # 最终每个Edge在各个factor上的分布
         output_factors_distribution = []
         # 初始在各个factor上的分布 [4,Edge]
-        A_values = tf.ones(shape=[self.factor_num, len(self.all_h_list)])
+        A_values = tf.ones(shape=[self.base_factor_num, len(self.all_h_list)])
 
         # 【step 1】：做L层卷积 每层卷积迭代t次
         for i in range(self.layer_num):
@@ -246,6 +261,21 @@ class PDCF():
 
         #user_final_embeddings,item_final_embeddings=tf.split(H_final,[self.n_users,self.n_items],axis=0)
         return H_final
+
+    def _get_sp_factor_emb(self,H_base,H_sp):
+        H_sp=H_sp+tf.layers.dense(H_base,
+                                    self.special_factor_num*self.factor_dim,
+                                    use_bias=True,
+                                    kernel_regularizer=tf.keras.regularizers.l2(self.regs[2]),
+                                    bias_regularizer=tf.keras.regularizers.l2(self.regs[2]),
+                                    activation='relu',
+                                    name="sp_factor_embedding_layer",
+                                    reuse=tf.AUTO_REUSE,
+                                    ) # [U+I,emb_dim]
+        #H_final=tf.concat([H_base,H_high],axis=1) # [U+I,2*emb_dim]
+
+        #user_final_embeddings,item_final_embeddings=tf.split(H_final,[self.n_users,self.n_items],axis=0)
+        return H_sp
 
     # 将邻接矩阵分成fold块
     def _split_A_hat(self, X):
