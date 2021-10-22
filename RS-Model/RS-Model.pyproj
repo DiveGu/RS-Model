@@ -4,7 +4,7 @@
     <SchemaVersion>2.0</SchemaVersion>
     <ProjectGuid>71c74822-9166-429a-9f86-1834da16c2a8</ProjectGuid>
     <ProjectHome>.</ProjectHome>
-    <StartupFile>main.py</StartupFile>
+    <StartupFile>test.py</StartupFile>
     <SearchPath>
     </SearchPath>
     <WorkingDirectory>.</WorkingDirectory>
@@ -23,6 +23,9 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="main.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="model\AutoRec.py">
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="model\GNUD.py" />
@@ -73,6 +76,9 @@
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="utils\load_data.py" />
+    <Compile Include="utils\load_data_AE.py">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Include="utils\load_data_history.py" />
     <Compile Include="utils\load_data_graph.py">
       <SubType>Code</SubType>

@@ -22,8 +22,8 @@ def parse_args():
     parser.add_argument('--test_method',nargs='?',default='ufo',
                         help='Choose a way to get test dataset from {fo,ufo, loo, tloo, tfo}')
     # 模型参数
-    parser.add_argument('--model_type',nargs='?',default='PDCF',
-                        help='Choose a model from {bprmf,neumf,DisenMF,LightGCN,NAIS,DGCF,GNUD,PDCF}.')
+    parser.add_argument('--model_type',nargs='?',default='AutoRec',
+                        help='Choose a model from {bprmf,neumf,DisenMF,LightGCN,NAIS,DGCF,GNUD,PDCF,AutoRec}.')
     parser.add_argument('--model_des',nargs='?',default='train_test',
                         help='record something')
 
@@ -74,17 +74,24 @@ def parse_args():
     # ---------------------------------------------------------
 
     # PDCF参数
-    parser.add_argument('--n_iteration', type=int,default=1,
-                        help='iteration_num in dynamic_routing.')
-    parser.add_argument('--layer_num', type=int,default=1,
-                        help='layer_num in DGCF.')
-    parser.add_argument('--factor_num', type=int,default=4,
-                        help='factor num.')
-    parser.add_argument('--special_factor_num', type=int,default=1,
-                        help='factor num.')
-
-    #parser.add_argument('--factor_dim', type=int,default=5,
+    #parser.add_argument('--n_iteration', type=int,default=1,
+    #                    help='iteration_num in dynamic_routing.')
+    #parser.add_argument('--layer_num', type=int,default=1,
+    #                    help='layer_num in DGCF.')
+    #parser.add_argument('--factor_num', type=int,default=4,
     #                    help='factor num.')
+    #parser.add_argument('--special_factor_num', type=int,default=1,
+    #                    help='factor num.')
+    # ---------------------------------------------------------
+
+    # VAE-CF参数 AutoRec
+    parser.add_argument('--q_dims', nargs='?', default='[100,20,]',
+                        help='encoder dims.')
+    parser.add_argument('--p_dims', nargs='?', default='[20,100,]',
+                        help='decoder dims.')
+
+    # ---------------------------------------------------------
+
 
     parser.add_argument('--embed_size',type=int,default=20,
                         help='CF embedding size')

@@ -1,6 +1,6 @@
 """
-- LightGCN
-- 2021/7/18
+- AutoRec
+- 2021/10/22
 """
 import numpy as np
 import tensorflow.compat.v1 as tf
@@ -8,24 +8,23 @@ import tensorflow
 import os
 os.environ['TF_CPP_MIN_LOG_LEVEL']='2'
 
-class NAIS():
+class AutoRec():
     def __init__(self,data_config,pretrain_data,args):
-        self.model_type='NAIS'
+        self.model_type='AutoRec'
         self.pretrain_data=pretrain_data
 
         self.n_users=data_config['n_users']
         self.n_items=data_config['n_items']
 
-        """
-        1 如果直接用R的话 不能用lookup来查每个uid 内存不够 通过data_config传进来训练集R
-        2 用序列表示每个uid 固定长度 不足的进行padding
-        """
-        #self.R = data_config['r_matrix']
+        # u2i 稀疏矩阵 相当于可以通过uid获取其所有train的行为序列
+        self.R = data_config['r_matrix']
 
         self.verbose=args.verbose
-        self.pool_type='mean_atten'
 
-        self.emb_dim=args.embed_size
+        self.q_dims=args.q_dims
+        self.p_dims=args.p_dims
+
+        self.emb_dim=self.q_dims[0]
         self.lr=args.lr
 
         self.batch_size=args.batch_size
@@ -33,7 +32,6 @@ class NAIS():
 
         # 定义输入placeholder
         self.users=tf.placeholder(tf.int32,shape=[None,],name='users')
-        self.user_his_item=tf.placeholder(tf.int32,shape=[None,None],name='user_his_item')
         self.pos_items=tf.placeholder(tf.int32,shape=[None,],name='pos_items')
         self.neg_items=tf.placeholder(tf.int32,shape=[None,],name='neg_items')
 
@@ -47,79 +45,25 @@ class NAIS():
 
     # 构造模型
     def _forward(self):
-        # 1 查嵌入表获得正负item作为traget的表示
-        pos_i_e=tf.nn.embedding_lookup(self.weights['item_embedding_target'],self.pos_items) # [N,1]
-        neg_i_e=tf.nn.embedding_lookup(self.weights['item_embedding_target'],self.neg_items) # [N,1]
-        # 2 根据user的历史记录和target item 获取user最终嵌入
-        his_e=tf.nn.embedding_lookup(self.weights['item_embedding_history'],self.user_his_item) # [N,m,K] 假设序列长度为m
-        # 2-1 根据pos_target_item得到得嵌入
-        # 2-2 根据neg_target_item得到得嵌入
-        if(self.pool_type=='mean'):
-            p_embeddings_pos=self._his_pool(his_e,'mean')
-            p_embeddings_neg=p_embeddings_pos
-        elif(self.pool_type=='sum'):
-            p_embeddings_pos=self._his_pool(his_e,'sum')
-            p_embeddings_neg=p_embeddings_pos
-        elif(self.pool_type=='target_atten'):
-            p_embeddings_pos = self._attention(his_e,pos_i_e,his_e)
-            p_embeddings_neg = self._attention(his_e,neg_i_e,his_e)
-        elif(self.pool_type=='mean_atten'):
-            p_embeddings_pos = self._attention(his_e,self._his_pool(his_e,'mean'),his_e)
-            p_embeddings_neg=p_embeddings_pos
+        # 1 Encoder 编码得Z
 
-        # 3 预测评分
-        #self.batch_predictions=tf.reduce_sum(tf.multiply(p_embeddings,pos_i_e),axis=1) # [N,1]
-        pos_scores=self._get_score(p_embeddings_pos,pos_i_e)
-        neg_scores=self._get_score(p_embeddings_neg,neg_i_e)
-        self.batch_predictions=pos_scores
-        # 4 构造损失函数 优化
-        self.mf_loss,self.reg_loss=self._creat_cf_loss(pos_scores,neg_scores,[his_e,pos_i_e,neg_i_e])
-        self.loss=self.mf_loss+self.reg_loss
+        # 2 Decoder 得重构X
 
-        self.opt=tf.train.AdamOptimizer(learning_rate=self.lr).minimize(self.loss)
+        # 3 loss: |x-x^|
 
-    def _attention(self,key,query,value):
-        """
-        # 历史序列中和target item越接近的 权重越高
-        key=[N,m,k]
-        query=[N,k]
-        value=[N,m,k]
-        最终得到 [N,k]
-        """
-        query=tf.expand_dims(query,1) # [N,k] -> [N,1,k]
-        score_logit=key*query # [N,m,k]*[N,1,k]->[N,m,k]
-        score_logit=tf.reduce_sum(score_logit,axis=2,keepdims=False) # [N,m]
-        
-        # softmax 关键点是不能计算序列中填充的item score_f
-        mask_mat=self._get_binary_tensor(self.user_his_item,self.n_items)
-        mask_mat=tf.cast(mask_mat,tf.float32) # [N,m] 填充的itemid对应为0 真实的为1
-        
-        # 写法1 自己写softmax
-        score_logit_exp=tf.exp(score_logit)*mask_mat # [N,m] 填充对应位置exp=0
-        score_logit_exp_sum=tf.reduce_sum(score_logit_exp,axis=1,keepdims=True) # [N,1] 这样求和项忽略掉了填充值
-
-        score_atten=score_logit_exp*tf.pow(score_logit_exp_sum,-1) # [N,m] / [N,1] -> [N,m]
-        
-        # 根据score和value聚合得结果
-        score_atten=tf.expand_dims(score_atten,2) # [N,m,1]
+        return
 
 
-        return tf.reduce_sum(score_atten*value,axis=1,keepdims=False) # [N,m,k] -> [N,k]
 
-    # 通过mean或sum聚合item序列
-    def _his_pool(self,his_e,pool_type='mean'):
-        """
-        his_e:[N,m,k]
-        his_pool:[N,k]
-        """
-        mask_mat=self._get_binary_tensor(self.user_his_item,self.n_items) # [N,m]
-        mask_mat=tf.expand_dims(tf.cast(mask_mat,tf.float32),2) # [N,m,1] 填充的itemid对应为0 真实的为1
-        his_pool=tf.reduce_sum(his_e*mask_mat,axis=1,keepdims=False) # [N,m,k] -> [N,k]
-        if(pool_type=='mean'):
-            his_item_num=tf.reduce_sum(mask_mat,axis=1,keepdims=False) # [N,1]
-            his_pool=his_pool*tf.pow(his_item_num,-1) # [N,k] * [N,1]
+    def _encoder(self,inputs):
 
-        return his_pool
+
+        return
+
+    def _decoder(self):
+
+
+        return
 
 
     # 计算预测得分score_ui
@@ -180,10 +124,8 @@ class NAIS():
 
         initializer=tensorflow.contrib.layers.xavier_initializer()
         if(self.pretrain_data==None):
-            #all_weights['user_embedding']=tf.Variable(initializer([self.n_users,self.emb_dim]),name='user_embedding')
-            all_weights['item_embedding_history']=tf.Variable(initializer([self.n_items+1,self.emb_dim]),name='item_embedding_history')
-            all_weights['item_embedding_target']=tf.Variable(initializer([self.n_items+1,self.emb_dim]),name='item_embedding_target')
-            #all_weights['item_embedding_target']=all_weights['item_embedding_history']
+            all_weights['item_embedding_q']=tf.Variable(initializer([self.n_items+1,self.emb_dim]),name='item_embedding_q')
+            all_weights['item_embedding_p']=tf.Variable(initializer([self.n_items+1,self.emb_dim]),name='item_embedding_p')
             print('using xavier initialization')        
         else:
             all_weights['item_embedding']=tf.Variable(initial_value=self.pretrain_data['item_embed'],trainable=True,
@@ -227,3 +169,4 @@ class NAIS():
     def predict(self,sess,feed_dict):
         batch_predictions=sess.run(self.batch_predictions,feed_dict)
         return batch_predictions
+
